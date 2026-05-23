@@ -12,8 +12,8 @@ Electron needs a desktop OS to launch. Replit runs in a headless Linux container
 ## Run it locally
 
 ```bash
-git clone <your-repo>
-cd <repo>
+git clone https://github.com/YOURNAME/koamessenger.git
+cd koamessenger
 pnpm install
 
 # One command — API, web frontend, and Electron all at once
@@ -25,7 +25,7 @@ pnpm --filter @workspace/koa-messenger run dev
 pnpm --filter @workspace/koa-messenger-desktop run dev
 ```
 
-Override the URL with `KOA_DEV_URL=https://your-deployed-app.replit.app pnpm dev` to point the shell at a published deployment instead of your local dev server.
+Override the URL with `KOA_DEV_URL=https://koamessenger-yourname.replit.app pnpm dev` to point the shell at a published deployment instead of your local dev server.
 
 ## Package for distribution
 
