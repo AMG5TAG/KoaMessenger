@@ -3,13 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KoaMessenger API - All-in-one messaging platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: platforms
+    description: Messaging platform management
+  - name: user-platforms
+    description: User platform connections
+  - name: users
+    description: User profile operations
+  - name: feedback
+    description: Feature requests and platform suggestions
+  - name: notifications
+    description: Notification preferences
+
 paths:
   /healthz:
     get:
@@ -24,6 +35,282 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /platforms:
+    get:
+      operationId: listPlatforms
+      tags: [platforms]
+      summary: List all available messaging platforms
+      responses:
+        "200":
+          description: All supported platforms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Platform"
+
+  /platforms/{id}:
+    get:
+      operationId: getPlatform
+      tags: [platforms]
+      summary: Get a single platform by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Platform details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Platform"
+        "404":
+          description: Not found
+
+  /user-platforms:
+    get:
+      operationId: listUserPlatforms
+      tags: [user-platforms]
+      summary: Get authenticated user's enabled platforms
+      responses:
+        "200":
+          description: User's enabled platforms in order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPlatform"
+    post:
+      operationId: addUserPlatform
+      tags: [user-platforms]
+      summary: Add a platform to user's list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPlatformInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPlatform"
+
+  /user-platforms/{id}:
+    delete:
+      operationId: removeUserPlatform
+      tags: [user-platforms]
+      summary: Remove a platform from user's list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+    patch:
+      operationId: updateUserPlatform
+      tags: [user-platforms]
+      summary: Update platform ordering or settings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPlatformUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPlatform"
+
+  /user-platforms/reorder:
+    post:
+      operationId: reorderUserPlatforms
+      tags: [user-platforms]
+      summary: Reorder user's platforms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderInput"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPlatform"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get authenticated user's profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update user's profile (display name, preferences)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/me/stats:
+    get:
+      operationId: getUserStats
+      tags: [users]
+      summary: Get user's platform usage statistics
+      responses:
+        "200":
+          description: User stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStats"
+
+  /feedback:
+    get:
+      operationId: listFeedback
+      tags: [feedback]
+      summary: List all feedback items (feature requests and platform suggestions)
+      responses:
+        "200":
+          description: All feedback
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feedback"
+    post:
+      operationId: createFeedback
+      tags: [feedback]
+      summary: Submit a feature request or platform suggestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+
+  /feedback/{id}/vote:
+    post:
+      operationId: voteFeedback
+      tags: [feedback]
+      summary: Upvote a feedback item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+
+  /platforms/search:
+    get:
+      operationId: searchPlatforms
+      tags: [platforms]
+      summary: Search platforms by name or category
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching platforms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Platform"
+
+  /notifications/preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [notifications]
+      summary: Get user's notification preferences per platform
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+    patch:
+      operationId: updateNotificationPreferences
+      tags: [notifications]
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationPreferencesUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +321,181 @@ components:
       required:
         - status
 
+    Platform:
+      type: object
+      required: [id, name, slug, url, category, color, description]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        url:
+          type: string
+        category:
+          type: string
+        color:
+          type: string
+        description:
+          type: string
+        iconUrl:
+          type: ["string", "null"]
+        isPopular:
+          type: boolean
+
+    UserPlatform:
+      type: object
+      required: [id, userId, platformId, sortOrder, isActive, platform]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        platformId:
+          type: integer
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+        displayName:
+          type: ["string", "null"]
+        platform:
+          $ref: "#/components/schemas/Platform"
+
+    UserPlatformInput:
+      type: object
+      required: [platformId]
+      properties:
+        platformId:
+          type: integer
+        displayName:
+          type: string
+
+    UserPlatformUpdate:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+        displayName:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    ReorderInput:
+      type: object
+      required: [orderedIds]
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: integer
+
+    UserProfile:
+      type: object
+      required: [id, clerkId, displayName, createdAt]
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        displayName:
+          type: string
+        createdAt:
+          type: string
+        notificationsEnabled:
+          type: boolean
+        theme:
+          type: string
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        displayName:
+          type: string
+        notificationsEnabled:
+          type: boolean
+        theme:
+          type: string
+
+    UserStats:
+      type: object
+      required: [totalPlatforms, activePlatforms, mostUsedCategory, totalFeedbackSubmitted]
+      properties:
+        totalPlatforms:
+          type: integer
+        activePlatforms:
+          type: integer
+        mostUsedCategory:
+          type: ["string", "null"]
+        totalFeedbackSubmitted:
+          type: integer
+
+    Feedback:
+      type: object
+      required: [id, type, title, description, votes, status, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [feature_request, platform_suggestion]
+        title:
+          type: string
+        description:
+          type: string
+        votes:
+          type: integer
+        status:
+          type: string
+          enum: [open, under_review, planned, completed, declined]
+        createdAt:
+          type: string
+        platformName:
+          type: ["string", "null"]
+        hasVoted:
+          type: boolean
+
+    FeedbackInput:
+      type: object
+      required: [type, title, description]
+      properties:
+        type:
+          type: string
+          enum: [feature_request, platform_suggestion]
+        title:
+          type: string
+        description:
+          type: string
+        platformName:
+          type: string
+
+    NotificationPreferences:
+      type: object
+      required: [globalEnabled, platformPreferences]
+      properties:
+        globalEnabled:
+          type: boolean
+        platformPreferences:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformNotificationPref"
+
+    NotificationPreferencesUpdate:
+      type: object
+      properties:
+        globalEnabled:
+          type: boolean
+        platformPreferences:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformNotificationPref"
+
+    PlatformNotificationPref:
+      type: object
+      required: [platformId, enabled]
+      properties:
+        platformId:
+          type: integer
+        enabled:
+          type: boolean

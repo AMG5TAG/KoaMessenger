@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "KoaMessenger"
+version = "1.0.0"
+id = "artifacts/koa-messenger"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18802
+
+[services.development]
+run = "pnpm --filter @workspace/koa-messenger run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/koa-messenger", "run", "build" ]
+publicDir = "artifacts/koa-messenger/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18802"
+BASE_PATH = "/"
