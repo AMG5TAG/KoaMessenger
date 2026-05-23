@@ -1,195 +1,277 @@
-import { useEffect, useRef, useState } from "react";
-import { useSearch } from "wouter";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearch, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
 import { useNotifications, parseUnreadFromTitle } from "@/lib/notifications-context";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 
 type Tab = { id: string; createdAt: number };
 
-const TAB_STORAGE_KEY = "km_platform_tabs_v2";
+const TAB_STORAGE_KEY = "km_platform_tabs_v3";
 
-function loadTabsForUp(upId: string): Tab[] {
-  try {
-    const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
-    if (!raw) return [{ id: `${upId}-1`, createdAt: Date.now() }];
-    const data = JSON.parse(raw) as Record<string, Tab[]>;
-    return data[upId] && data[upId].length > 0
-      ? data[upId]
-      : [{ id: `${upId}-1`, createdAt: Date.now() }];
-  } catch {
-    return [{ id: `${upId}-1`, createdAt: Date.now() }];
-  }
-}
-
-function saveTabsForUp(upId: string, tabs: Tab[]) {
+function loadTabsForUp(upId: number): Tab[] {
   try {
     const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
     const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
-    data[upId] = tabs;
+    const saved = data[String(upId)];
+    return saved && saved.length > 0
+      ? saved
+      : [{ id: `${upId}-t1`, createdAt: Date.now() }];
+  } catch {
+    return [{ id: `${upId}-t1`, createdAt: Date.now() }];
+  }
+}
+
+function saveTabsForUp(upId: number, tabs: Tab[]) {
+  try {
+    const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
+    const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
+    data[String(upId)] = tabs;
     sessionStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data));
   } catch {
     // ignore
   }
 }
 
+type PlatformTabState = {
+  tabs: Tab[];
+  activeTabId: string;
+};
+
 export default function Dashboard() {
   const search = useSearch();
-  const upParam = new URLSearchParams(search).get("up");
+  const [, setLocation] = useLocation();
+  const activeUpId = Number(new URLSearchParams(search).get("up") ?? "0") || null;
+  const { toast } = useToast();
+  const { counts } = useNotifications();
+  const prevCounts = useRef<Record<number, number>>({});
 
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
 
-  const userPlatform = upParam
-    ? userPlatforms?.find(up => up.id === Number(upParam))
-    : undefined;
-
-  const platform = userPlatform?.platform;
-
-  const [tabs, setTabs] = useState<Tab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // ── Sticky visited platforms: once loaded, never unmount ──────────────────
+  const [visitedUpIds, setVisitedUpIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (!upParam) return;
-    const loaded = loadTabsForUp(upParam);
-    setTabs(loaded);
-    setActiveTabId(loaded[0]?.id ?? null);
-  }, [upParam]);
+    if (!activeUpId) return;
+    setVisitedUpIds((prev) => (prev.includes(activeUpId) ? prev : [...prev, activeUpId]));
+  }, [activeUpId]);
+
+  // ── Per-platform tab state ────────────────────────────────────────────────
+  const [platformTabs, setPlatformTabs] = useState<Record<number, PlatformTabState>>({});
 
   useEffect(() => {
-    if (!upParam || tabs.length === 0) return;
-    saveTabsForUp(upParam, tabs);
-  }, [upParam, tabs]);
-
-  const addTab = () => {
-    if (!upParam) return;
-    const newTab: Tab = { id: `${upParam}-${Date.now()}`, createdAt: Date.now() };
-    setTabs((t) => [...t, newTab]);
-    setActiveTabId(newTab.id);
-  };
-
-  const closeTab = (tabId: string) => {
-    setTabs((t) => {
-      const next = t.filter((x) => x.id !== tabId);
-      if (next.length === 0) {
-        const fresh: Tab = { id: `${upParam}-${Date.now()}`, createdAt: Date.now() };
-        setActiveTabId(fresh.id);
-        return [fresh];
-      }
-      if (tabId === activeTabId) {
-        setActiveTabId(next[next.length - 1].id);
-      }
-      return next;
+    if (!activeUpId) return;
+    setPlatformTabs((prev) => {
+      if (prev[activeUpId]) return prev; // already initialised
+      const tabs = loadTabsForUp(activeUpId);
+      return { ...prev, [activeUpId]: { tabs, activeTabId: tabs[0]?.id ?? "" } };
     });
-  };
+  }, [activeUpId]);
 
-  if (!upParam) {
-    return (
-      <AppLayout>
-        <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0a0a] text-center px-4">
-          <img src={logoRoundPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90" />
-          <h2 className="text-2xl font-bold text-white mb-2">Welcome to KoaMessenger</h2>
-          <p className="text-gray-400 max-w-md mb-8">
-            Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.
-          </p>
-        </div>
-      </AppLayout>
-    );
-  }
+  const addTab = useCallback((upId: number) => {
+    setPlatformTabs((prev) => {
+      const state = prev[upId];
+      if (!state) return prev;
+      const newTab: Tab = { id: `${upId}-t${Date.now()}`, createdAt: Date.now() };
+      const next = { tabs: [...state.tabs, newTab], activeTabId: newTab.id };
+      saveTabsForUp(upId, next.tabs);
+      return { ...prev, [upId]: next };
+    });
+  }, []);
 
-  const isLoading = userPlatformsLoading;
+  const closeTab = useCallback((upId: number, tabId: string) => {
+    setPlatformTabs((prev) => {
+      const state = prev[upId];
+      if (!state) return prev;
+      let next = state.tabs.filter((t) => t.id !== tabId);
+      let nextActive = state.activeTabId;
+      if (next.length === 0) {
+        const fresh: Tab = { id: `${upId}-t${Date.now()}`, createdAt: Date.now() };
+        next = [fresh];
+        nextActive = fresh.id;
+      } else if (tabId === state.activeTabId) {
+        nextActive = next[next.length - 1].id;
+      }
+      saveTabsForUp(upId, next);
+      return { ...prev, [upId]: { tabs: next, activeTabId: nextActive } };
+    });
+  }, []);
+
+  const setActiveTab = useCallback((upId: number, tabId: string) => {
+    setPlatformTabs((prev) => {
+      const state = prev[upId];
+      if (!state || state.activeTabId === tabId) return prev;
+      return { ...prev, [upId]: { ...state, activeTabId: tabId } };
+    });
+  }, []);
+
+  // ── Toast when an INACTIVE platform gets a new message ───────────────────
+  useEffect(() => {
+    if (!userPlatforms) return;
+    for (const up of userPlatforms) {
+      if (up.id === activeUpId) {
+        // Just update previous so switching away doesn't fire a stale toast
+        prevCounts.current[up.id] = counts[up.id] ?? 0;
+        continue;
+      }
+      const prev = prevCounts.current[up.id] ?? 0;
+      const curr = counts[up.id] ?? 0;
+      if (curr > prev) {
+        const label = up.displayName ?? up.platform.name;
+        toast({
+          title: `New message — ${label}`,
+          description: curr === 1 ? "1 unread message" : `${curr} unread messages`,
+          duration: 6000,
+          action: (
+            <ToastAction
+              altText="Open platform"
+              onClick={() => setLocation(`/dashboard?up=${up.id}`)}
+              className="bg-[#dc2350] text-white hover:bg-[#e34f73] border-0"
+            >
+              Open
+            </ToastAction>
+          ),
+        });
+      }
+      prevCounts.current[up.id] = curr;
+    }
+  }, [counts, activeUpId, userPlatforms, toast, setLocation]);
 
   return (
     <AppLayout>
-      <div className="h-full w-full flex flex-col bg-[#0a0a0a]">
-        {isLoading ? (
+      <div className="h-full w-full flex flex-col bg-[#0a0a0a] relative">
+        {userPlatformsLoading && !activeUpId ? (
           <div className="h-full w-full flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
           </div>
-        ) : platform && userPlatform ? (
-          <>
-            {/* Tab bar */}
-            <div className="h-11 bg-[#0d0d0d] border-b border-[#1f1f1f] flex items-center pl-3 pr-2 gap-1 shrink-0 overflow-x-auto hide-scrollbar">
-              {tabs.map((tab, idx) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTabId(tab.id)}
-                  className={`group flex items-center gap-2 h-8 pl-3 pr-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-                    tab.id === activeTabId
-                      ? "bg-[#1a1a1a] text-white border border-[#2a2a2a]"
-                      : "text-gray-400 hover:text-white hover:bg-[#151515]"
-                  }`}
-                  data-testid={`tab-${idx}`}
-                >
-                  <span>
-                    {userPlatform.displayName ?? platform.name}{" "}
-                    <span className="text-gray-500">· Tab {idx + 1}</span>
-                  </span>
-                  {tabs.length > 1 && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeTab(tab.id);
-                      }}
-                      className="w-5 h-5 rounded flex items-center justify-center hover:bg-gray-700 opacity-60 hover:opacity-100"
-                    >
-                      <X className="w-3 h-3" />
-                    </span>
-                  )}
-                </button>
-              ))}
-              <button
-                onClick={addTab}
-                className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#151515] rounded-md shrink-0"
-                title="Open another tab (new login session in desktop app)"
-                data-testid="button-add-tab"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <div className="flex-1" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
-                onClick={() => window.open(platform.url, "_blank", "noopener,noreferrer")}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                New tab
-              </Button>
-            </div>
+        ) : !activeUpId ? (
+          <WelcomeScreen />
+        ) : null}
 
-            {/* Iframe panes (keep all mounted, only show active so tabs preserve state) */}
-            <div className="flex-1 relative">
-              {tabs.map((tab) => (
-                <div
-                  key={tab.id}
-                  className={`absolute inset-0 ${tab.id === activeTabId ? "block" : "hidden"}`}
+        {/* Render ALL visited platforms — only the active one is visible.
+            Keeping them mounted means webviews stay alive for title / notification monitoring. */}
+        {visitedUpIds.map((upId) => {
+          const up = userPlatforms?.find((u) => u.id === upId);
+          const state = platformTabs[upId];
+          const isActive = upId === activeUpId;
+
+          if (!up || !state) return null;
+
+          return (
+            <div
+              key={upId}
+              className="absolute inset-0 flex flex-col"
+              style={{
+                visibility: isActive ? "visible" : "hidden",
+                pointerEvents: isActive ? "auto" : "none",
+                zIndex: isActive ? 1 : 0,
+              }}
+            >
+              {/* Tab bar */}
+              <div className="h-11 bg-[#0d0d0d] border-b border-[#1f1f1f] flex items-center pl-3 pr-2 gap-1 shrink-0 overflow-x-auto hide-scrollbar">
+                {state.tabs.map((tab, idx) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(upId, tab.id)}
+                    className={`group flex items-center gap-2 h-8 pl-3 pr-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
+                      tab.id === state.activeTabId
+                        ? "bg-[#1a1a1a] text-white border border-[#2a2a2a]"
+                        : "text-gray-400 hover:text-white hover:bg-[#151515]"
+                    }`}
+                  >
+                    <span>
+                      {up.displayName ?? up.platform.name}
+                      <span className="text-gray-500"> · Tab {idx + 1}</span>
+                    </span>
+                    {state.tabs.length > 1 && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeTab(upId, tab.id);
+                        }}
+                        className="w-5 h-5 rounded flex items-center justify-center hover:bg-gray-700 opacity-60 hover:opacity-100"
+                      >
+                        <X className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <button
+                  onClick={() => addTab(upId)}
+                  className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#151515] rounded-md shrink-0"
+                  title="Open another tab (new isolated session in the desktop app)"
                 >
-                  <PlatformPane
-                    platform={platform}
-                    upId={userPlatform.id}
-                    tabId={tab.id}
-                    active={tab.id === activeTabId}
-                  />
-                </div>
-              ))}
+                  <Plus className="w-4 h-4" />
+                </button>
+                <div className="flex-1" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
+                  onClick={() => window.open(up.platform.url, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  New window
+                </Button>
+              </div>
+
+              {/* Platform panes — one per tab, all kept mounted */}
+              <div className="flex-1 relative">
+                {state.tabs.map((tab) => (
+                  <div
+                    key={tab.id}
+                    className="absolute inset-0"
+                    style={{
+                      display: tab.id === state.activeTabId ? "block" : "none",
+                    }}
+                  >
+                    <PlatformPane
+                      platform={up.platform}
+                      upId={upId}
+                      tabId={tab.id}
+                      active={isActive && tab.id === state.activeTabId}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="h-full w-full flex items-center justify-center">
-            <p className="text-gray-400">Platform not found</p>
-          </div>
-        )}
+          );
+        })}
       </div>
     </AppLayout>
   );
 }
+
+function WelcomeScreen() {
+  return (
+    <div className="h-full w-full flex flex-col items-center justify-center text-center px-4">
+      <img src={logoRoundPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90" />
+      <h2 className="text-2xl font-bold text-white mb-2">Welcome to KoaMessenger</h2>
+      <p className="text-gray-400 max-w-md mb-8">
+        Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.
+      </p>
+    </div>
+  );
+}
+
+type PlatformMeta = {
+  id: number;
+  name: string;
+  url: string;
+  color: string;
+  iconUrl?: string | null;
+  embedsInIframe?: boolean;
+  iframeNotes?: string | null;
+};
 
 function PlatformPane({
   platform,
@@ -197,7 +279,7 @@ function PlatformPane({
   tabId,
   active,
 }: {
-  platform: { id: number; name: string; url: string; color: string; iconUrl?: string | null; embedsInIframe?: boolean; iframeNotes?: string | null };
+  platform: PlatformMeta;
   upId: number;
   tabId: string;
   active: boolean;
@@ -208,64 +290,67 @@ function PlatformPane({
   const [loading, setLoading] = useState(!blocked);
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const webviewRef = useRef<HTMLElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Electron webview: listen for load events
-  useEffect(() => {
-    if (!desktop || blocked) return;
-    const el = webviewRef.current;
-    if (!el) return;
-    const onFinish = () => {
-      setLoading(false);
-      setTimedOut(false);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-    const onFail = (e: Event) => {
-      const err = e as unknown as { errorCode?: number };
-      if (err.errorCode === -3) return;
-      setLoading(false);
-      setTimedOut(true);
-    };
-    el.addEventListener("did-finish-load", onFinish);
-    el.addEventListener("did-fail-load", onFail as EventListener);
-    return () => {
-      el.removeEventListener("did-finish-load", onFinish);
-      el.removeEventListener("did-fail-load", onFail as EventListener);
-    };
-  }, [desktop, blocked, tabId]);
+  // Attach webview event listeners once, when the element is available
+  const attachWebviewListeners = useCallback(
+    (el: HTMLElement) => {
+      const onFinish = () => {
+        setLoading(false);
+        setTimedOut(false);
+        if (timerRef.current) clearTimeout(timerRef.current);
+      };
+      const onFail = (e: Event) => {
+        const err = e as unknown as { errorCode?: number };
+        if (err.errorCode === -3) return; // aborted (normal on redirect)
+        setLoading(false);
+        setTimedOut(true);
+      };
+      const onTitleUpdate = (e: Event) => {
+        const title = (e as unknown as { title: string }).title ?? "";
+        const count = parseUnreadFromTitle(title);
+        setCount(upId, tabId, count);
+      };
 
-  // Electron webview: parse unread count from page title
-  useEffect(() => {
-    if (!desktop || blocked) return;
-    const el = webviewRef.current;
-    if (!el) return;
-    const onTitleUpdate = (e: Event) => {
-      const title = (e as unknown as { title: string }).title ?? "";
-      const count = parseUnreadFromTitle(title);
-      setCount(upId, tabId, count);
-    };
-    el.addEventListener("page-title-updated", onTitleUpdate as EventListener);
-    return () => {
-      el.removeEventListener("page-title-updated", onTitleUpdate as EventListener);
-    };
-  }, [desktop, blocked, upId, tabId, setCount]);
+      el.addEventListener("did-finish-load", onFinish);
+      el.addEventListener("did-fail-load", onFail as EventListener);
+      el.addEventListener("page-title-updated", onTitleUpdate as EventListener);
 
-  // Clear count when this pane is focused/active
+      return () => {
+        el.removeEventListener("did-finish-load", onFinish);
+        el.removeEventListener("did-fail-load", onFail as EventListener);
+        el.removeEventListener("page-title-updated", onTitleUpdate as EventListener);
+      };
+    },
+    [upId, tabId, setCount],
+  );
+
+  // Callback ref — fires when the webview DOM element is first attached
+  const webviewCallbackRef = useCallback(
+    (el: HTMLElement | null) => {
+      webviewRef.current = el;
+      if (!el || !desktop || blocked) return;
+      attachWebviewListeners(el);
+    },
+    [desktop, blocked, attachWebviewListeners],
+  );
+
+  // Clear badge when this pane becomes active
   useEffect(() => {
     if (active) clearCount(upId);
   }, [active, upId, clearCount]);
 
-  // Load timeout for browser iframes
+  // Load-timeout for browser iframes
   useEffect(() => {
-    if (blocked) return;
+    if (desktop || blocked) return;
     setLoading(true);
     setTimedOut(false);
     timerRef.current = setTimeout(() => setTimedOut(true), 15000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [tabId, blocked]);
+  }, [tabId, desktop, blocked]);
 
   if (blocked) {
     return <BlockedFallback platform={platform} />;
@@ -286,7 +371,7 @@ function PlatformPane({
       )}
       {desktop ? (
         <webview
-          ref={(el) => { webviewRef.current = el; }}
+          ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
           partition={`persist:plat-${platform.id}-${tabId}`}
           allowpopups={"true" as unknown as boolean}
@@ -313,11 +398,7 @@ function PlatformPane({
   );
 }
 
-function BlockedFallback({
-  platform,
-}: {
-  platform: { name: string; url: string; color: string; iconUrl?: string | null; iframeNotes?: string | null };
-}) {
+function BlockedFallback({ platform }: { platform: PlatformMeta }) {
   return (
     <div className="h-full w-full flex items-center justify-center bg-[#0a0a0a] p-6">
       <div className="max-w-md text-center">
