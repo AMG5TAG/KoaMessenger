@@ -65,24 +65,111 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* Abstract App Preview */}
-        <div className="mt-20 w-full max-w-5xl h-[60vh] md:h-[70vh] rounded-2xl border border-gray-800 bg-[#111] overflow-hidden shadow-2xl relative animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-700 fill-mode-both">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent z-10" />
-          <div className="flex h-full">
-            <div className="w-20 border-r border-gray-800 bg-[#0d0d0d] flex flex-col items-center py-4 gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#dc2350] flex items-center justify-center shadow-[0_0_15px_rgba(220,35,80,0.5)]">
-                <MessageSquare className="w-5 h-5 text-white" />
+        {/* App Preview Mockup */}
+        <div className="mt-20 w-full max-w-5xl rounded-2xl border border-gray-800 bg-[#111] overflow-hidden shadow-2xl relative">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent z-10 pointer-events-none" />
+          {/* Window chrome */}
+          <div className="h-9 bg-[#0d0d0d] border-b border-gray-800 flex items-center px-4 gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+            <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+            <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+            <div className="mx-auto text-xs text-gray-600 font-mono">KoaMessenger — Dashboard</div>
+          </div>
+          <div className="flex" style={{ height: '420px' }}>
+            {/* Sidebar */}
+            <div className="w-16 border-r border-gray-800 bg-[#0d0d0d] flex flex-col items-center py-3 gap-3 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#dc2350] flex items-center justify-center shadow-[0_0_12px_rgba(220,35,80,0.5)]">
+                <MessageSquare className="w-4 h-4 text-white" />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-[#25D366] opacity-50" />
-              <div className="w-10 h-10 rounded-xl bg-[#5865F2] opacity-50" />
-              <div className="w-10 h-10 rounded-xl bg-[#0088cc] opacity-50" />
+              <div className="w-1 h-0 opacity-0" />
+              {/* Platform dots */}
+              {[
+                { bg: '#25D366' }, // WhatsApp
+                { bg: '#0088cc' }, // Telegram
+                { bg: '#0866FF' }, // Messenger
+                { bg: '#5865F2' }, // Discord
+                { bg: '#4A154B' }, // Slack
+              ].map((p, i) => (
+                <div key={i} className={`w-9 h-9 rounded-xl flex items-center justify-center ${i === 0 ? 'ring-2 ring-[#dc2350] ring-offset-1 ring-offset-[#0d0d0d]' : 'opacity-60'}`} style={{ backgroundColor: p.bg }}>
+                  <div className="w-4 h-4 rounded bg-white/20" />
+                </div>
+              ))}
+              <div className="mt-auto w-7 h-7 rounded-lg bg-gray-800 opacity-60" />
+              <div className="w-7 h-7 rounded-lg bg-gray-800 opacity-60" />
+              <div className="w-7 h-7 rounded-full bg-[#dc2350]/80" />
             </div>
-            <div className="flex-1 p-8 relative">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#dc2350] rounded-full blur-[100px] opacity-20" />
-              <div className="flex flex-col gap-4 max-w-2xl mx-auto mt-10">
-                <div className="h-16 w-3/4 bg-gray-800 rounded-xl animate-pulse" />
-                <div className="h-24 w-full bg-gray-800 rounded-xl animate-pulse delay-75" />
-                <div className="h-16 w-5/6 bg-gray-800 rounded-xl animate-pulse delay-150" />
+
+            {/* Main content — mock chat window */}
+            <div className="flex-1 flex flex-col bg-[#0a0a0a] overflow-hidden">
+              {/* Top bar */}
+              <div className="h-10 bg-[#0d0d0d] border-b border-gray-800 flex items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-[#25D366]" />
+                  <div className="h-3 w-24 bg-gray-700 rounded-full" />
+                </div>
+                <div className="h-3 w-20 bg-gray-800 rounded-full" />
+              </div>
+
+              {/* Chat messages mock */}
+              <div className="flex-1 p-4 space-y-4 overflow-hidden">
+                {/* Received message */}
+                <div className="flex items-end gap-2 max-w-xs">
+                  <div className="w-6 h-6 rounded-full bg-[#25D366] shrink-0" />
+                  <div className="space-y-1">
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl rounded-bl-sm px-3 py-2">
+                      <div className="h-2.5 w-40 bg-gray-600 rounded-full mb-1.5" />
+                      <div className="h-2.5 w-28 bg-gray-700 rounded-full" />
+                    </div>
+                    <div className="h-2 w-12 bg-gray-800 rounded-full ml-1" />
+                  </div>
+                </div>
+
+                {/* Sent message */}
+                <div className="flex items-end gap-2 max-w-xs ml-auto flex-row-reverse">
+                  <div className="w-6 h-6 rounded-full bg-[#dc2350] shrink-0" />
+                  <div className="space-y-1 items-end flex flex-col">
+                    <div className="bg-[#dc2350]/20 border border-[#dc2350]/30 rounded-2xl rounded-br-sm px-3 py-2">
+                      <div className="h-2.5 w-32 bg-[#dc2350]/40 rounded-full mb-1.5" />
+                      <div className="h-2.5 w-20 bg-[#dc2350]/30 rounded-full" />
+                    </div>
+                    <div className="h-2 w-10 bg-gray-800 rounded-full mr-1" />
+                  </div>
+                </div>
+
+                {/* Received message 2 */}
+                <div className="flex items-end gap-2 max-w-sm">
+                  <div className="w-6 h-6 rounded-full bg-[#25D366] shrink-0" />
+                  <div className="space-y-1">
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl rounded-bl-sm px-3 py-2">
+                      <div className="h-2.5 w-52 bg-gray-600 rounded-full mb-1.5" />
+                      <div className="h-2.5 w-36 bg-gray-700 rounded-full mb-1.5" />
+                      <div className="h-2.5 w-44 bg-gray-700 rounded-full" />
+                    </div>
+                    <div className="h-2 w-12 bg-gray-800 rounded-full ml-1" />
+                  </div>
+                </div>
+
+                {/* Sent message 2 */}
+                <div className="flex items-end gap-2 max-w-xs ml-auto flex-row-reverse">
+                  <div className="w-6 h-6 rounded-full bg-[#dc2350] shrink-0" />
+                  <div className="space-y-1 items-end flex flex-col">
+                    <div className="bg-[#dc2350]/20 border border-[#dc2350]/30 rounded-2xl rounded-br-sm px-3 py-2">
+                      <div className="h-2.5 w-48 bg-[#dc2350]/40 rounded-full" />
+                    </div>
+                    <div className="flex items-center gap-1 mr-1">
+                      <div className="h-2 w-8 bg-gray-800 rounded-full" />
+                      <div className="w-2 h-2 rounded-full bg-[#dc2350]/50" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Input bar */}
+              <div className="h-12 border-t border-gray-800 bg-[#0d0d0d] flex items-center gap-3 px-4">
+                <div className="flex-1 h-7 bg-[#1a1a1a] rounded-full border border-gray-800" />
+                <div className="w-7 h-7 rounded-full bg-[#dc2350] flex items-center justify-center shadow-[0_0_10px_rgba(220,35,80,0.4)]">
+                  <ArrowRight className="w-3.5 h-3.5 text-white" />
+                </div>
               </div>
             </div>
           </div>
