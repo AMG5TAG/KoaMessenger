@@ -7,8 +7,10 @@ import { shadcn } from "@clerk/themes";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
 import { DemoProvider, useDemo } from "@/lib/demo-context";
+import { ArrowLeft } from "lucide-react";
 
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
@@ -73,16 +75,32 @@ const clerkAppearance = {
 };
 
 function SignInPage() {
+  const [, setLocation] = useLocation();
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#1a0a10] px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
+      <Button
+        variant="ghost"
+        className="mb-4 text-gray-400 hover:text-white hover:bg-transparent"
+        onClick={() => setLocation("/")}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to site
+      </Button>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
     </div>
   );
 }
 
 function SignUpPage() {
+  const [, setLocation] = useLocation();
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#1a0a10] px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
+      <Button
+        variant="ghost"
+        className="mb-4 text-gray-400 hover:text-white hover:bg-transparent"
+        onClick={() => setLocation("/")}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to site
+      </Button>
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
     </div>
   );
