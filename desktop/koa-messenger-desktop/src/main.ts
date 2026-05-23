@@ -2,7 +2,7 @@ import { app, BrowserWindow, session, shell } from "electron";
 import path from "node:path";
 
 const DEV_URL = process.env.KOA_DEV_URL ?? "http://localhost:18802/";
-const PROD_URL = process.env.KOA_PROD_URL ?? DEV_URL;
+const PROD_URL = process.env.KOA_PROD_URL ?? "https://koamessenger.replit.app/";
 const IS_DEV = !app.isPackaged;
 
 const ALLOWED_OPEN_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
