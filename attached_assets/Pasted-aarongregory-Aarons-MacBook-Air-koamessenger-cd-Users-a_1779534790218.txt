@@ -1,0 +1,60 @@
+aarongregory@Aarons-MacBook-Air koamessenger % cd /Users/aarongregory/koamessenger
+
+# 1. Remove the stale lockfile and all node_modules
+rm -f pnpm-lock.yaml
+rm -rf node_modules
+rm -rf artifacts/*/node_modules
+rm -rf lib/*/node_modules
+rm -rf desktop/*/node_modules
+
+# 2. Re-install everything with the new workspace rules
+pnpm install
+
+# 3. Verify esbuild got its Mac binary
+ls node_modules/.pnpm/esbuild@*/node_modules/esbuild/bin/
+# You should see a file called "esbuild"
+zsh: command not found: #
+zsh: command not found: #
+Scope: all 10 workspace projects
+[WARN] 11 deprecated subdependencies found: @npmcli/move-file@2.0.1, are-we-there-yet@3.0.1, boolean@3.2.0, gauge@4.0.4, glob@10.5.0, glob@7.2.3, glob@8.1.0, inflight@1.0.6, npmlog@6.0.2, rimraf@3.0.2, tar@6.2.1
+Packages: +778
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 783, reused 778, downloaded 0, added 778, done
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock'
+└─ Done in 133ms
+[WARN] Issues with peer dependencies found. Run "pnpm peers check" to list them.
+
+devDependencies:
++ concurrently 9.2.1
++ prettier 3.8.3
++ typescript 5.9.3 (6.0.3 is available)
+
+Done in 11s using pnpm v11.1.1
+zsh: command not found: #
+esbuild
+zsh: command not found: #
+aarongregory@Aarons-MacBook-Air koamessenger % pnpm --filter @workspace/koa-messenger-desktop run build
+$ tsc -p tsconfig.json && node ./scripts/build.mjs
+/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1750
+        throw new Error(`The package "${pkg}" could not be found, and is needed by esbuild.
+              ^
+
+Error: The package "@esbuild/darwin-arm64" could not be found, and is needed by esbuild.
+
+If you are installing esbuild with npm, make sure that you don't specify the
+"--no-optional" or "--omit=optional" flags. The "optionalDependencies" feature
+of "package.json" is used by esbuild to install the correct binary executable
+for your current platform.
+    at generateBinPath (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1750:15)
+    at esbuildCommandAndArgs (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1820:33)
+    at ensureServiceIsRunning (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1977:25)
+    at build (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1876:26)
+    at file:///Users/aarongregory/koamessenger/desktop/koa-messenger-desktop/scripts/build.mjs:6:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.22.2
+/Users/aarongregory/koamessenger/desktop/koa-messenger-desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/koa-messenger-desktop@0.1.0 build: `tsc -p tsconfig.json && node ./scripts/build.mjs`
+Exit status 1
