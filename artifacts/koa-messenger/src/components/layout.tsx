@@ -194,7 +194,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 overflow-hidden relative">
+        <main className="flex-1 flex flex-col overflow-hidden relative">
           {children}
         </main>
       </div>
