@@ -20,6 +20,10 @@
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage" }
   },
+  "optionalDependencies": {
+    "@esbuild/darwin-arm64": "0.27.3",
+    "@esbuild/darwin-x64": "0.27.3"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "electron": "^33.2.1",
