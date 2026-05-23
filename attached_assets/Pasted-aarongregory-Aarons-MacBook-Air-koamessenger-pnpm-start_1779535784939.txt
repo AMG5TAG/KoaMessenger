@@ -1,0 +1,84 @@
+aarongregory@Aarons-MacBook-Air koamessenger % pnpm start:desktop
+$ concurrently --names API,WEB,desktop --prefix-colors yellow,green,cyan "pnpm --filter @workspace/api-server run dev" "pnpm --filter @workspace/koa-messenger run dev" "sleep 6 && pnpm --filter @workspace/koa-messenger-desktop run dev"
+[API] $ export NODE_ENV=development && pnpm run build && pnpm run start
+[WEB] $ vite --config vite.config.ts --host 0.0.0.0
+[API] $ node ./build.mjs
+[API] Error: The package "@esbuild/darwin-arm64" could not be found, and is needed by esbuild.
+[API] 
+[API] If you are installing esbuild with npm, make sure that you don't specify the
+[API] "--no-optional" or "--omit=optional" flags. The "optionalDependencies" feature
+[API] of "package.json" is used by esbuild to install the correct binary executable
+[API] for your current platform.
+[API]     at generateBinPath (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1750:15)
+[API]     at esbuildCommandAndArgs (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1820:33)
+[API]     at ensureServiceIsRunning (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1977:25)
+[API]     at build (/Users/aarongregory/koamessenger/node_modules/.pnpm/esbuild@0.27.3/node_modules/esbuild/lib/main.js:1876:26)
+[API]     at buildAll (file:///Users/aarongregory/koamessenger/artifacts/api-server/build.mjs:17:9)
+[API] [ELIFECYCLE] Command failed with exit code 1.
+[API] /Users/aarongregory/koamessenger/artifacts/api-server:
+[API] [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/api-server@0.0.0 dev: `export NODE_ENV=development && pnpm run build && pnpm run start`
+[API] Exit status 1
+[API] pnpm --filter @workspace/api-server run dev exited with code 1
+[WEB] /Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js:115
+[WEB] 		throw new Error(
+[WEB] 		      ^
+[WEB] 
+[WEB] Error: Cannot find module @rollup/rollup-darwin-arm64. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+[WEB]     at requireWithFriendlyError (/Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js:115:9)
+[WEB]     at Object.<anonymous> (/Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js:124:76)
+[WEB]     at Module._compile (node:internal/modules/cjs/loader:1705:14)
+[WEB]     at Object..js (node:internal/modules/cjs/loader:1838:10)
+[WEB]     at Module.load (node:internal/modules/cjs/loader:1441:32)
+[WEB]     at Function._load (node:internal/modules/cjs/loader:1263:12)
+[WEB]     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+[WEB]     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+[WEB]     at cjsLoader (node:internal/modules/esm/translators:309:5)
+[WEB]     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:202:7) {
+[WEB]   [cause]: Error: Cannot find module '@rollup/rollup-darwin-arm64'
+[WEB]   Require stack:
+[WEB]   - /Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js
+[WEB]       at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+[WEB]       at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+[WEB]       at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+[WEB]       at Function._load (node:internal/modules/cjs/loader:1192:37)
+[WEB]       at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+[WEB]       at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+[WEB]       at Module.require (node:internal/modules/cjs/loader:1463:12)
+[WEB]       at require (node:internal/modules/helpers:147:16)
+[WEB]       at requireWithFriendlyError (/Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js:97:10)
+[WEB]       at Object.<anonymous> (/Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js:124:76) {
+[WEB]     code: 'MODULE_NOT_FOUND',
+[WEB]     requireStack: [
+[WEB]       '/Users/aarongregory/koamessenger/node_modules/.pnpm/rollup@4.60.4/node_modules/rollup/dist/native.js'
+[WEB]     ]
+[WEB]   }
+[WEB] }
+[WEB] 
+[WEB] Node.js v22.22.2
+[WEB] /Users/aarongregory/koamessenger/artifacts/koa-messenger:
+[WEB] [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/koa-messenger@0.0.0 dev: `vite --config vite.config.ts --host 0.0.0.0`
+[WEB] Exit status 1
+[WEB] pnpm --filter @workspace/koa-messenger run dev exited with code 1
+[desktop] $ tsc -p tsconfig.json && node ./scripts/build.mjs && electron .
+[desktop] /Users/aarongregory/koamessenger/node_modules/.pnpm/electron@33.4.11/node_modules/electron/index.js:17
+[desktop]     throw new Error('Electron failed to install correctly, please delete node_modules/electron and try installing again');
+[desktop]     ^
+[desktop] 
+[desktop] Error: Electron failed to install correctly, please delete node_modules/electron and try installing again
+[desktop]     at getElectronPath (/Users/aarongregory/koamessenger/node_modules/.pnpm/electron@33.4.11/node_modules/electron/index.js:17:11)
+[desktop]     at Object.<anonymous> (/Users/aarongregory/koamessenger/node_modules/.pnpm/electron@33.4.11/node_modules/electron/index.js:21:18)
+[desktop]     at Module._compile (node:internal/modules/cjs/loader:1705:14)
+[desktop]     at Object..js (node:internal/modules/cjs/loader:1838:10)
+[desktop]     at Module.load (node:internal/modules/cjs/loader:1441:32)
+[desktop]     at Function._load (node:internal/modules/cjs/loader:1263:12)
+[desktop]     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+[desktop]     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+[desktop]     at Module.require (node:internal/modules/cjs/loader:1463:12)
+[desktop]     at require (node:internal/modules/helpers:147:16)
+[desktop] 
+[desktop] Node.js v22.22.2
+[desktop] /Users/aarongregory/koamessenger/desktop/koa-messenger-desktop:
+[desktop] [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/koa-messenger-desktop@0.1.0 dev: `tsc -p tsconfig.json && node ./scripts/build.mjs && electron .`
+[desktop] Exit status 1
+[desktop] sleep 6 && pnpm --filter @workspace/koa-messenger-desktop run dev exited with code 1
+[ELIFECYCLE] Command failed with exit code 1.
