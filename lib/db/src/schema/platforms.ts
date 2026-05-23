@@ -12,6 +12,8 @@ export const platformsTable = pgTable("platforms", {
   description: text("description").notNull(),
   iconUrl: text("icon_url"),
   isPopular: boolean("is_popular").notNull().default(false),
+  embedsInIframe: boolean("embeds_in_iframe").notNull().default(true),
+  iframeNotes: text("iframe_notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -343,6 +343,10 @@ components:
           type: ["string", "null"]
         isPopular:
           type: boolean
+        embedsInIframe:
+          type: boolean
+        iframeNotes:
+          type: ["string", "null"]
 
     UserPlatform:
       type: object

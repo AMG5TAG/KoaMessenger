@@ -20,6 +20,9 @@ export interface Platform {
   /** @nullable */
   iconUrl?: string | null;
   isPopular?: boolean;
+  embedsInIframe?: boolean;
+  /** @nullable */
+  iframeNotes?: string | null;
 }
 
 export interface UserPlatform {

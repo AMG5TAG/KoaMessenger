@@ -29,7 +29,9 @@ export const ListPlatformsResponseItem = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 export const ListPlatformsResponse = zod.array(ListPlatformsResponseItem)
 
@@ -50,7 +52,9 @@ export const GetPlatformResponse = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 
 
@@ -73,7 +77,9 @@ export const ListUserPlatformsResponseItem = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 })
 export const ListUserPlatformsResponse = zod.array(ListUserPlatformsResponseItem)
@@ -125,7 +131,9 @@ export const UpdateUserPlatformResponse = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 })
 
@@ -153,7 +161,9 @@ export const ReorderUserPlatformsResponseItem = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 })
 export const ReorderUserPlatformsResponse = zod.array(ReorderUserPlatformsResponseItem)
@@ -267,7 +277,9 @@ export const SearchPlatformsResponseItem = zod.object({
   "color": zod.string(),
   "description": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "isPopular": zod.boolean().optional()
+  "isPopular": zod.boolean().optional(),
+  "embedsInIframe": zod.boolean().optional(),
+  "iframeNotes": zod.string().nullish()
 })
 export const SearchPlatformsResponse = zod.array(SearchPlatformsResponseItem)
 
