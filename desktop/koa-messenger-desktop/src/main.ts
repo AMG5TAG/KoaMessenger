@@ -36,6 +36,23 @@ function attachHeaderStripping(ses: Electron.Session) {
   });
 }
 
+/**
+ * Permissions we allow inside platform webviews.
+ * Notifications are required for message badge counts and macOS banners.
+ * Media permissions cover audio/video calls within platforms.
+ */
+const ALLOWED_PERMISSIONS = new Set([
+  "notifications",
+  "media",
+  "mediaKeySystem",
+  "geolocation",
+  "pointerLock",
+  "fullscreen",
+  "openExternal",
+  "clipboard-read",
+  "clipboard-sanitized-write",
+]);
+
 const hardenedSessions = new WeakSet<Electron.Session>();
 function ensurePartitionHardened(partition: string | undefined) {
   if (!partition || !partition.startsWith("persist:plat-")) return;
@@ -43,6 +60,17 @@ function ensurePartitionHardened(partition: string | undefined) {
   if (hardenedSessions.has(ses)) return;
   hardenedSessions.add(ses);
   attachHeaderStripping(ses);
+
+  // Grant notification and media permissions so platforms can send macOS banners
+  // and make audio/video calls without an extra browser-level prompt being denied.
+  ses.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(ALLOWED_PERMISSIONS.has(permission));
+  });
+
+  // setPermissionCheckHandler answers synchronous checks (e.g. Notification.permission)
+  ses.setPermissionCheckHandler((_webContents, permission) => {
+    return ALLOWED_PERMISSIONS.has(permission);
+  });
 }
 
 function createMainWindow() {
