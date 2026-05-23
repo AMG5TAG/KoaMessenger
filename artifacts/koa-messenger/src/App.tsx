@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
 import { DemoProvider, useDemo } from "@/lib/demo-context";
+import { NotificationProvider } from "@/lib/notifications-context";
 import { ArrowLeft, Play } from "lucide-react";
 
 import Home from "@/pages/home";
@@ -254,10 +255,12 @@ function App() {
     <WouterRouter base={basePath}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <DemoProvider>
-            <ClerkProviderWithRoutes />
-          </DemoProvider>
-          <Toaster />
+          <NotificationProvider>
+            <DemoProvider>
+              <ClerkProviderWithRoutes />
+            </DemoProvider>
+            <Toaster />
+          </NotificationProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </WouterRouter>

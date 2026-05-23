@@ -10,6 +10,7 @@ import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1
 import { PlatformIcon } from "./platform-icon";
 import { useListUserPlatforms } from "@workspace/api-client-react";
 import { useDemo } from "@/lib/demo-context";
+import { useNotifications } from "@/lib/notifications-context";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
@@ -17,7 +18,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { isDemo, deactivate } = useDemo();
   const [location, setLocation] = useLocation();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-  
+  const { counts, clearCount } = useNotifications();
+
   const { data: userPlatforms, isLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] }
   });
@@ -32,6 +34,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
     signOut({ redirectUrl: basePath || "/" });
   };
+
+  const isActiveUp = (upId: number) => location.includes(`up=${upId}`);
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#0d0d0d] border-r border-[#1f1f1f]">
@@ -53,23 +57,43 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             No platforms yet
           </div>
         ) : (
-          activePlatforms.sort((a, b) => a.sortOrder - b.sortOrder).map(up => (
-            <Link key={up.id} href={`/dashboard?platform=${up.platformId}`}>
-              <div className={`relative group cursor-pointer w-12 h-12 rounded-xl transition-all duration-200 ${
-                location.includes(`platform=${up.platformId}`) ? 'shadow-[0_0_15px_rgba(220,35,80,0.4)] scale-110' : 'hover:scale-105 opacity-70 hover:opacity-100'
-              }`}>
-                {location.includes(`platform=${up.platformId}`) && (
-                  <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#dc2350] rounded-r-md" />
-                )}
-                <PlatformIcon 
-                  name={up.platform.name} 
-                  color={up.platform.color} 
-                  iconUrl={up.platform.iconUrl}
-                  className="w-full h-full"
-                />
-              </div>
-            </Link>
-          ))
+          activePlatforms.sort((a, b) => a.sortOrder - b.sortOrder).map(up => {
+            const unread = counts[up.id] ?? 0;
+            const active = isActiveUp(up.id);
+            return (
+              <Link key={up.id} href={`/dashboard?up=${up.id}`}>
+                <div
+                  className={`relative group cursor-pointer w-12 h-12 rounded-xl transition-all duration-200 ${
+                    active ? 'shadow-[0_0_15px_rgba(220,35,80,0.4)] scale-110' : 'hover:scale-105 opacity-70 hover:opacity-100'
+                  }`}
+                  onClick={() => { if (active) clearCount(up.id); }}
+                  title={up.displayName ?? up.platform.name}
+                >
+                  {active && (
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#dc2350] rounded-r-md" />
+                  )}
+                  <PlatformIcon
+                    name={up.platform.name}
+                    color={up.platform.color}
+                    iconUrl={up.platform.iconUrl}
+                    className="w-full h-full"
+                  />
+                  {/* Notification badge */}
+                  {unread > 0 && !active && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#dc2350] text-white text-[10px] font-bold flex items-center justify-center leading-none z-10">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
+                  {/* Display name label on hover for multi-account */}
+                  {up.displayName && (
+                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {up.displayName}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            );
+          })
         )}
 
         <div className="w-8 h-px bg-gray-800 my-2" />

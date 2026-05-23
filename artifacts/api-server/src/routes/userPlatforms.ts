@@ -43,13 +43,6 @@ router.post("/user-platforms", requireAuth, async (req: any, res) => {
     const [platform] = await db.select().from(platformsTable).where(eq(platformsTable.id, platformId));
     if (!platform) return res.status(404).json({ error: "Platform not found" });
 
-    const existing = await db
-      .select()
-      .from(userPlatformsTable)
-      .where(and(eq(userPlatformsTable.userId, req.userId), eq(userPlatformsTable.platformId, platformId)));
-
-    if (existing.length > 0) return res.status(409).json({ error: "Platform already added" });
-
     const currentPlatforms = await db
       .select()
       .from(userPlatformsTable)

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,9 +10,7 @@ export const userPlatformsTable = pgTable("user_platforms", {
   isActive: boolean("is_active").notNull().default(true),
   displayName: text("display_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  uniqUserPlatform: unique().on(table.userId, table.platformId),
-}));
+});
 
 export const insertUserPlatformSchema = createInsertSchema(userPlatformsTable).omit({ id: true, createdAt: true });
 export type InsertUserPlatform = z.infer<typeof insertUserPlatformSchema>;

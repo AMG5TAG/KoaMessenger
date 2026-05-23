@@ -1,33 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout";
-import { useListUserPlatforms, useGetPlatform } from "@workspace/api-client-react";
-import { Loader2, ExternalLink, X, Plus, ShieldAlert, Info } from "lucide-react";
+import { useListUserPlatforms } from "@workspace/api-client-react";
+import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
+import { useNotifications, parseUnreadFromTitle } from "@/lib/notifications-context";
 import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 
 type Tab = { id: string; createdAt: number };
 
-const TAB_STORAGE_KEY = "km_platform_tabs_v1";
+const TAB_STORAGE_KEY = "km_platform_tabs_v2";
 
-function loadTabsForPlatform(platformId: string): Tab[] {
+function loadTabsForUp(upId: string): Tab[] {
   try {
     const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
-    if (!raw) return [{ id: `${platformId}-1`, createdAt: Date.now() }];
+    if (!raw) return [{ id: `${upId}-1`, createdAt: Date.now() }];
     const data = JSON.parse(raw) as Record<string, Tab[]>;
-    return data[platformId] && data[platformId].length > 0
-      ? data[platformId]
-      : [{ id: `${platformId}-1`, createdAt: Date.now() }];
+    return data[upId] && data[upId].length > 0
+      ? data[upId]
+      : [{ id: `${upId}-1`, createdAt: Date.now() }];
   } catch {
-    return [{ id: `${platformId}-1`, createdAt: Date.now() }];
+    return [{ id: `${upId}-1`, createdAt: Date.now() }];
   }
 }
 
-function saveTabsForPlatform(platformId: string, tabs: Tab[]) {
+function saveTabsForUp(upId: string, tabs: Tab[]) {
   try {
     const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
     const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
-    data[platformId] = tabs;
+    data[upId] = tabs;
     sessionStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data));
   } catch {
     // ignore
@@ -36,35 +37,36 @@ function saveTabsForPlatform(platformId: string, tabs: Tab[]) {
 
 export default function Dashboard() {
   const searchParams = new URLSearchParams(window.location.search);
-  const platformId = searchParams.get("platform");
+  const upParam = searchParams.get("up");
 
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
 
-  const { data: platform, isLoading: platformLoading } = useGetPlatform(
-    Number(platformId),
-    { query: { enabled: !!platformId, queryKey: [`/api/platforms/${platformId}`] } },
-  );
+  const userPlatform = upParam
+    ? userPlatforms?.find(up => up.id === Number(upParam))
+    : undefined;
+
+  const platform = userPlatform?.platform;
 
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!platformId) return;
-    const loaded = loadTabsForPlatform(platformId);
+    if (!upParam) return;
+    const loaded = loadTabsForUp(upParam);
     setTabs(loaded);
     setActiveTabId(loaded[0]?.id ?? null);
-  }, [platformId]);
+  }, [upParam]);
 
   useEffect(() => {
-    if (!platformId || tabs.length === 0) return;
-    saveTabsForPlatform(platformId, tabs);
-  }, [platformId, tabs]);
+    if (!upParam || tabs.length === 0) return;
+    saveTabsForUp(upParam, tabs);
+  }, [upParam, tabs]);
 
   const addTab = () => {
-    if (!platformId) return;
-    const newTab: Tab = { id: `${platformId}-${Date.now()}`, createdAt: Date.now() };
+    if (!upParam) return;
+    const newTab: Tab = { id: `${upParam}-${Date.now()}`, createdAt: Date.now() };
     setTabs((t) => [...t, newTab]);
     setActiveTabId(newTab.id);
   };
@@ -73,7 +75,7 @@ export default function Dashboard() {
     setTabs((t) => {
       const next = t.filter((x) => x.id !== tabId);
       if (next.length === 0) {
-        const fresh: Tab = { id: `${platformId}-${Date.now()}`, createdAt: Date.now() };
+        const fresh: Tab = { id: `${upParam}-${Date.now()}`, createdAt: Date.now() };
         setActiveTabId(fresh.id);
         return [fresh];
       }
@@ -84,7 +86,7 @@ export default function Dashboard() {
     });
   };
 
-  if (!platformId) {
+  if (!upParam) {
     return (
       <AppLayout>
         <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0a0a] text-center px-4">
@@ -98,7 +100,7 @@ export default function Dashboard() {
     );
   }
 
-  const isLoading = platformLoading || userPlatformsLoading;
+  const isLoading = userPlatformsLoading;
 
   return (
     <AppLayout>
@@ -107,7 +109,7 @@ export default function Dashboard() {
           <div className="h-full w-full flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
           </div>
-        ) : platform ? (
+        ) : platform && userPlatform ? (
           <>
             {/* Tab bar */}
             <div className="h-11 bg-[#0d0d0d] border-b border-[#1f1f1f] flex items-center pl-3 pr-2 gap-1 shrink-0 overflow-x-auto hide-scrollbar">
@@ -123,7 +125,8 @@ export default function Dashboard() {
                   data-testid={`tab-${idx}`}
                 >
                   <span>
-                    {platform.name} <span className="text-gray-500">· Tab {idx + 1}</span>
+                    {userPlatform.displayName ?? platform.name}{" "}
+                    <span className="text-gray-500">· Tab {idx + 1}</span>
                   </span>
                   {tabs.length > 1 && (
                     <span
@@ -143,7 +146,7 @@ export default function Dashboard() {
               <button
                 onClick={addTab}
                 className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#151515] rounded-md shrink-0"
-                title="Open another tab"
+                title="Open another tab (new login session in desktop app)"
                 data-testid="button-add-tab"
               >
                 <Plus className="w-4 h-4" />
@@ -169,6 +172,7 @@ export default function Dashboard() {
                 >
                   <PlatformPane
                     platform={platform}
+                    upId={userPlatform.id}
                     tabId={tab.id}
                     active={tab.id === activeTabId}
                   />
@@ -188,16 +192,17 @@ export default function Dashboard() {
 
 function PlatformPane({
   platform,
+  upId,
   tabId,
   active,
 }: {
   platform: { id: number; name: string; url: string; color: string; iconUrl?: string | null; embedsInIframe?: boolean; iframeNotes?: string | null };
+  upId: number;
   tabId: string;
   active: boolean;
 }) {
   const desktop = isDesktop();
-  // In Electron we use <webview> with per-tab partitions, so iframe-blocking
-  // platforms work fine. Only fall back when running in a plain browser.
+  const { setCount, clearCount } = useNotifications();
   const blocked = !desktop && platform.embedsInIframe === false;
   const [loading, setLoading] = useState(!blocked);
   const [timedOut, setTimedOut] = useState(false);
@@ -205,6 +210,7 @@ function PlatformPane({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const webviewRef = useRef<HTMLElement | null>(null);
 
+  // Electron webview: listen for load events
   useEffect(() => {
     if (!desktop || blocked) return;
     const el = webviewRef.current;
@@ -216,7 +222,6 @@ function PlatformPane({
     };
     const onFail = (e: Event) => {
       const err = e as unknown as { errorCode?: number };
-      // -3 = ABORTED (often a redirect, not a real failure)
       if (err.errorCode === -3) return;
       setLoading(false);
       setTimedOut(true);
@@ -229,19 +234,36 @@ function PlatformPane({
     };
   }, [desktop, blocked, tabId]);
 
+  // Electron webview: parse unread count from page title
+  useEffect(() => {
+    if (!desktop || blocked) return;
+    const el = webviewRef.current;
+    if (!el) return;
+    const onTitleUpdate = (e: Event) => {
+      const title = (e as unknown as { title: string }).title ?? "";
+      const count = parseUnreadFromTitle(title);
+      setCount(upId, tabId, count);
+    };
+    el.addEventListener("page-title-updated", onTitleUpdate as EventListener);
+    return () => {
+      el.removeEventListener("page-title-updated", onTitleUpdate as EventListener);
+    };
+  }, [desktop, blocked, upId, tabId, setCount]);
+
+  // Clear count when this pane is focused/active
+  useEffect(() => {
+    if (active) clearCount(upId);
+  }, [active, upId, clearCount]);
+
+  // Load timeout for browser iframes
   useEffect(() => {
     if (blocked) return;
     setLoading(true);
     setTimedOut(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (loading) setTimedOut(true);
-    }, 8000);
+    timerRef.current = setTimeout(() => setTimedOut(true), 15000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-    // Reset when tab changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabId, blocked]);
 
   if (blocked) {
@@ -249,33 +271,21 @@ function PlatformPane({
   }
 
   return (
-    <div className="absolute inset-0">
+    <div className="w-full h-full relative">
       {loading && !timedOut && (
-        <div className="absolute inset-0 z-10 bg-[#0a0a0a] flex flex-col items-center justify-center pointer-events-none">
-          <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin mb-4" />
-          <p className="text-gray-400">Loading {platform.name} securely...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] z-10">
+          <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
         </div>
       )}
-      {timedOut && loading && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-amber-950/80 border border-amber-700/60 text-amber-200 text-xs px-3 py-2 rounded-lg flex items-center gap-2 backdrop-blur-sm max-w-md">
-          <Info className="w-3.5 h-3.5 shrink-0" />
-          <span>
-            {platform.name} is taking longer than usual. It may be blocking embed —{" "}
-            <button
-              className="underline hover:text-white"
-              onClick={() => window.open(platform.url, "_blank", "noopener,noreferrer")}
-            >
-              open in a new tab
-            </button>
-            .
-          </span>
+      {timedOut && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-gray-400">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          Taking a while — the site may be slow or have limited connectivity.
         </div>
       )}
       {desktop ? (
         <webview
-          ref={(el) => {
-            webviewRef.current = el;
-          }}
+          ref={(el) => { webviewRef.current = el; }}
           src={platform.url}
           partition={`persist:plat-${platform.id}-${tabId}`}
           allowpopups={"true" as unknown as boolean}
@@ -292,10 +302,8 @@ function PlatformPane({
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-storage-access-by-user-activation"
           allow="clipboard-read; clipboard-write; encrypted-media; fullscreen"
           referrerPolicy="strict-origin-when-cross-origin"
-          loading={active ? "eager" : "lazy"}
           onLoad={() => {
             setLoading(false);
-            setTimedOut(false);
             if (timerRef.current) clearTimeout(timerRef.current);
           }}
         />
@@ -311,12 +319,14 @@ function BlockedFallback({
 }) {
   return (
     <div className="h-full w-full flex items-center justify-center bg-[#0a0a0a] p-6">
-      <div className="max-w-lg w-full bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8 text-center">
-        <div
-          className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-5"
-          style={{ backgroundColor: `${platform.color}20`, border: `1px solid ${platform.color}40` }}
-        >
-          <ShieldAlert className="w-8 h-8" style={{ color: platform.color }} />
+      <div className="max-w-md text-center">
+        <div className="w-20 h-20 mx-auto mb-6">
+          <div
+            className="w-full h-full rounded-2xl flex items-center justify-center text-white text-3xl font-bold"
+            style={{ backgroundColor: platform.color || "#333" }}
+          >
+            {platform.name[0]}
+          </div>
         </div>
         <h2 className="text-xl font-bold text-white mb-2">{platform.name} can't be embedded</h2>
         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
@@ -324,15 +334,12 @@ function BlockedFallback({
             `${platform.name} prevents embedding inside other sites for security. You can still launch it in a new browser tab — your login stays with ${platform.name}, never with us.`}
         </p>
         <Button
-          className="bg-[#dc2350] hover:bg-[#e34f73] text-white h-11 px-6 rounded-xl"
+          className="bg-[#dc2350] hover:bg-[#e34f73] text-white"
           onClick={() => window.open(platform.url, "_blank", "noopener,noreferrer")}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
           Open {platform.name}
         </Button>
-        <p className="text-xs text-gray-600 mt-5">
-          Tip: a desktop app build (Electron) could embed {platform.name} directly. Ask if you'd like one.
-        </p>
       </div>
     </div>
   );

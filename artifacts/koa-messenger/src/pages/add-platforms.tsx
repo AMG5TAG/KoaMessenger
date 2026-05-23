@@ -2,15 +2,25 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { useListPlatforms, useListUserPlatforms, useAddUserPlatform, useRemoveUserPlatform } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Check, Loader2, Info, ExternalLink } from "lucide-react";
+import { Search, Plus, Check, Loader2, Info, ExternalLink, UserPlus, X } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { isDesktop } from "@/lib/desktop";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function AddPlatforms() {
   const [search, setSearch] = useState("");
+  const [addingAccount, setAddingAccount] = useState<{ id: number; name: string } | null>(null);
+  const [accountLabel, setAccountLabel] = useState("");
   const { toast } = useToast();
 
   const { data: platforms, isLoading: platformsLoading } = useListPlatforms({
@@ -26,33 +36,51 @@ export default function AddPlatforms() {
 
   const isLoading = platformsLoading || userPlatformsLoading;
 
-  const filteredPlatforms = platforms?.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredPlatforms = platforms?.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  const isAdded = (platformId: number) => {
-    return userPlatforms?.some(up => up.platformId === platformId && up.isActive);
+  // Get all active entries for a platform (may be multiple accounts)
+  const getActiveEntries = (platformId: number) =>
+    userPlatforms?.filter(up => up.platformId === platformId && up.isActive) ?? [];
+
+  const isAdded = (platformId: number) => getActiveEntries(platformId).length > 0;
+
+  const handleAdd = (platformId: number, displayName?: string) => {
+    addPlatform.mutate({ data: { platformId, displayName: displayName || undefined } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user-platforms"] });
+        toast({ title: "Platform added", description: displayName ? `Added "${displayName}" to your sidebar.` : "Added to your sidebar." });
+      },
+      onError: () => {
+        toast({ title: "Failed to add platform", variant: "destructive" });
+      }
+    });
   };
 
-  const handleTogglePlatform = (platformId: number) => {
-    const existing = userPlatforms?.find(up => up.platformId === platformId);
-    
-    if (existing && existing.isActive) {
-      removePlatform.mutate({ id: existing.id }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["/api/user-platforms"] });
-          toast({ title: "Platform removed", description: "Removed from your sidebar." });
-        }
-      });
-    } else {
-      addPlatform.mutate({ data: { platformId } }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["/api/user-platforms"] });
-          toast({ title: "Platform added", description: "Added to your sidebar." });
-        }
-      });
-    }
+  const handleRemoveFirst = (platformId: number) => {
+    const entries = getActiveEntries(platformId);
+    if (entries.length === 0) return;
+    // Remove the first (oldest) entry
+    removePlatform.mutate({ id: entries[0].id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user-platforms"] });
+        toast({ title: "Platform removed", description: "Removed from your sidebar." });
+      }
+    });
+  };
+
+  const openAddAccountDialog = (platformId: number, platformName: string) => {
+    setAddingAccount({ id: platformId, name: platformName });
+    setAccountLabel("");
+  };
+
+  const confirmAddAccount = () => {
+    if (!addingAccount) return;
+    handleAdd(addingAccount.id, accountLabel.trim() || `${addingAccount.name} ${(getActiveEntries(addingAccount.id).length + 1)}`);
+    setAddingAccount(null);
+    setAccountLabel("");
   };
 
   // Group by category
@@ -78,10 +106,10 @@ export default function AddPlatforms() {
 
           <div className="relative mb-12 max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-            <Input 
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search for WhatsApp, Discord, Slack..." 
+              placeholder="Search for WhatsApp, Discord, Slack..."
               className="w-full bg-[#141414] border-gray-800 text-white pl-12 h-14 rounded-xl text-lg focus-visible:ring-[#dc2350]"
             />
           </div>
@@ -106,19 +134,20 @@ export default function AddPlatforms() {
                     <h2 className="text-xl font-semibold text-white mb-6 capitalize">{category}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {categoryPlatforms.map(platform => {
-                        const added = isAdded(platform.id);
+                        const entries = getActiveEntries(platform.id);
+                        const added = entries.length > 0;
                         const isMutating = addPlatform.isPending || removePlatform.isPending;
 
                         return (
-                          <div 
-                            key={platform.id} 
+                          <div
+                            key={platform.id}
                             className="bg-[#141414] border border-gray-800 hover:border-gray-600 rounded-2xl p-5 flex items-start gap-4 transition-all hover:-translate-y-1 hover:shadow-lg group"
                           >
-                            <PlatformIcon 
-                              name={platform.name} 
-                              color={platform.color} 
-                              iconUrl={platform.iconUrl} 
-                              className="w-14 h-14 shrink-0" 
+                            <PlatformIcon
+                              name={platform.name}
+                              color={platform.color}
+                              iconUrl={platform.iconUrl}
+                              className="w-14 h-14 shrink-0"
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -134,20 +163,55 @@ export default function AddPlatforms() {
                                 )}
                               </div>
                               <p className="text-sm text-gray-500 line-clamp-2 mt-1">{platform.description}</p>
+                              {/* Account labels for existing entries */}
+                              {entries.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {entries.map((up) => (
+                                    <span key={up.id} className="inline-flex items-center gap-1 text-[11px] bg-[#1a2e1e] text-[#4ade80] px-2 py-0.5 rounded-full">
+                                      {up.displayName ?? platform.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <Button
-                              size="icon"
-                              variant={added ? "secondary" : "default"}
-                              className={`shrink-0 rounded-xl transition-all ${
-                                added 
-                                  ? 'bg-[#1a2e1e] text-[#4ade80] hover:bg-red-950 hover:text-red-400' 
-                                  : 'bg-[#1f1f1f] text-white hover:bg-[#dc2350]'
-                              }`}
-                              onClick={() => handleTogglePlatform(platform.id)}
-                              disabled={isMutating}
-                            >
-                              {added ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                            </Button>
+                            <div className="flex flex-col gap-1.5 shrink-0">
+                              {added ? (
+                                <>
+                                  {/* Remove first account */}
+                                  <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="bg-[#1a2e1e] text-[#4ade80] hover:bg-red-950 hover:text-red-400 rounded-xl transition-all"
+                                    onClick={() => handleRemoveFirst(platform.id)}
+                                    disabled={isMutating}
+                                    title="Remove account"
+                                  >
+                                    <Check className="w-5 h-5" />
+                                  </Button>
+                                  {/* Add another account */}
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-gray-400 hover:text-[#dc2350] hover:bg-[#1a0a10] rounded-xl transition-all"
+                                    onClick={() => openAddAccountDialog(platform.id, platform.name)}
+                                    disabled={isMutating}
+                                    title="Add another account"
+                                  >
+                                    <UserPlus className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="default"
+                                  className="bg-[#1f1f1f] text-white hover:bg-[#dc2350] rounded-xl transition-all"
+                                  onClick={() => handleAdd(platform.id)}
+                                  disabled={isMutating}
+                                >
+                                  <Plus className="w-5 h-5" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -159,6 +223,36 @@ export default function AddPlatforms() {
           )}
         </div>
       </div>
+
+      {/* Add another account dialog */}
+      <Dialog open={!!addingAccount} onOpenChange={(open) => !open && setAddingAccount(null)}>
+        <DialogContent className="bg-[#141414] border-gray-800 text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add another {addingAccount?.name} account</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Give this account a label so you can tell them apart in the sidebar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              autoFocus
+              placeholder={`e.g. Work, Personal, Side project…`}
+              value={accountLabel}
+              onChange={(e) => setAccountLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && confirmAddAccount()}
+              className="bg-[#0a0a0a] border-gray-700 text-white focus-visible:ring-[#dc2350]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" className="text-gray-400" onClick={() => setAddingAccount(null)}>
+              <X className="w-4 h-4 mr-1" /> Cancel
+            </Button>
+            <Button className="bg-[#dc2350] hover:bg-[#e34f73] text-white" onClick={confirmAddAccount}>
+              Add account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
