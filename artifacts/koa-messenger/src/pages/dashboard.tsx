@@ -289,7 +289,8 @@ function PlatformPane({
   const desktop = isDesktop();
   const { setCount, clearCount } = useNotifications();
   const blocked = !desktop && platform.embedsInIframe === false;
-  const [loading, setLoading] = useState(!blocked);
+  const isNativeOnly = platform.url.includes("apple.com/messages");
+  const [loading, setLoading] = useState(!blocked && !isNativeOnly);
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webviewRef = useRef<HTMLElement | null>(null);
@@ -373,6 +374,10 @@ function PlatformPane({
     return <BlockedFallback platform={platform} />;
   }
 
+  if (isNativeOnly) {
+    return <NativeOnlyFallback platform={platform} />;
+  }
+
   return (
     <div className="w-full h-full relative">
       {loading && !timedOut && (
@@ -411,6 +416,31 @@ function PlatformPane({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
+  return (
+    <div className="h-full w-full flex items-center justify-center bg-[#0a0a0a] p-6">
+      <div className="max-w-md text-center">
+        <div className="w-20 h-20 mx-auto mb-6">
+          <div
+            className="w-full h-full rounded-2xl flex items-center justify-center text-white text-3xl font-bold"
+            style={{ backgroundColor: platform.color || "#333" }}
+          >
+            {platform.name[0]}
+          </div>
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">{platform.name} is native-only</h2>
+        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+          {platform.iframeNotes ??
+            `${platform.name} does not offer a web or desktop client. It is only available on Apple devices (iPhone, iPad, and Mac) through the native Messages app.`}
+        </p>
+        <p className="text-gray-500 text-xs mt-4">
+          You can keep this in your sidebar as a reminder, or remove it from Add Platforms.
+        </p>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { DEMO_USER_ID } from "../middlewares/auth";
 const DEMO_CLERK_ID = "demo_user";
 // Mix of embed-friendly (Telegram, Mastodon, Element, Jitsi) and blocked
 // (WhatsApp, Discord) so demo users see both the in-app and new-tab flows.
-const DEMO_PLATFORM_SLUGS = ["telegram", "whatsapp", "discord", "element", "mastodon", "jitsi"];
+const DEMO_PLATFORM_SLUGS = ["telegram", "whatsapp", "discord", "element", "mastodon", "jitsi", "signal"];
 
 async function resolveDemoPlatformIds(): Promise<number[]> {
   const rows = await db
