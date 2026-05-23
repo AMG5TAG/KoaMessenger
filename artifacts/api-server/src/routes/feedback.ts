@@ -1,22 +1,13 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db, feedbackTable, feedbackVotesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-
-const requireAuth = (req: any, res: any, next: any) => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  req.userId = userId;
-  next();
-};
+import { requireAuth, getUserId } from "../middlewares/auth";
 
 const router = Router();
 
 router.get("/feedback", async (req, res) => {
   try {
-    const auth = getAuth(req);
-    const userId = auth?.userId;
+    const userId = getUserId(req);
 
     const items = await db.select().from(feedbackTable).orderBy(feedbackTable.votes);
 
@@ -34,10 +25,10 @@ router.get("/feedback", async (req, res) => {
       })
     );
 
-    res.json(result.reverse());
+    return res.json(result.reverse());
   } catch (err) {
     req.log.error({ err }, "Failed to list feedback");
-    res.status(500).json({ error: "Failed to list feedback" });
+    return res.status(500).json({ error: "Failed to list feedback" });
   }
 });
 
@@ -56,10 +47,10 @@ router.post("/feedback", requireAuth, async (req: any, res) => {
       .values({ userId: req.userId, type, title, description, platformName: platformName ?? null })
       .returning();
 
-    res.status(201).json({ ...item, hasVoted: false });
+    return res.status(201).json({ ...item, hasVoted: false });
   } catch (err) {
     req.log.error({ err }, "Failed to create feedback");
-    res.status(500).json({ error: "Failed to create feedback" });
+    return res.status(500).json({ error: "Failed to create feedback" });
   }
 });
 
@@ -83,7 +74,7 @@ router.post("/feedback/:id/vote", requireAuth, async (req: any, res) => {
         .set({ votes: Math.max(0, item.votes - 1) })
         .where(eq(feedbackTable.id, id))
         .returning();
-      res.json({ ...updated, hasVoted: false });
+      return res.json({ ...updated, hasVoted: false });
     } else {
       await db.insert(feedbackVotesTable).values({ feedbackId: id, userId: req.userId });
       const [updated] = await db
@@ -91,11 +82,11 @@ router.post("/feedback/:id/vote", requireAuth, async (req: any, res) => {
         .set({ votes: item.votes + 1 })
         .where(eq(feedbackTable.id, id))
         .returning();
-      res.json({ ...updated, hasVoted: true });
+      return res.json({ ...updated, hasVoted: true });
     }
   } catch (err) {
     req.log.error({ err }, "Failed to vote on feedback");
-    res.status(500).json({ error: "Failed to vote on feedback" });
+    return res.status(500).json({ error: "Failed to vote on feedback" });
   }
 });
 

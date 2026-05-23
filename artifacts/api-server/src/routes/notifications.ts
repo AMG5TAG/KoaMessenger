@@ -1,15 +1,7 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db, usersTable, userPlatformsTable, platformsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-
-const requireAuth = (req: any, res: any, next: any) => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  req.userId = userId;
-  next();
-};
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
@@ -27,13 +19,13 @@ router.get("/notifications/preferences", requireAuth, async (req: any, res) => {
       enabled: up.isActive,
     }));
 
-    res.json({
+    return res.json({
       globalEnabled: user?.notificationsEnabled ?? true,
       platformPreferences,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get notification preferences");
-    res.status(500).json({ error: "Failed to get notification preferences" });
+    return res.status(500).json({ error: "Failed to get notification preferences" });
   }
 });
 
@@ -70,13 +62,13 @@ router.patch("/notifications/preferences", requireAuth, async (req: any, res) =>
       enabled: up.isActive,
     }));
 
-    res.json({
+    return res.json({
       globalEnabled: updatedUser?.notificationsEnabled ?? true,
       platformPreferences: platformPrefs,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to update notification preferences");
-    res.status(500).json({ error: "Failed to update notification preferences" });
+    return res.status(500).json({ error: "Failed to update notification preferences" });
   }
 });
 

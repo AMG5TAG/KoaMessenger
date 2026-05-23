@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { LayoutDashboard, Plus, Settings, MessageSquare, Menu, LogOut, Bell, FileText } from "lucide-react";
+import { Plus, Settings, Menu, LogOut, FileText, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -9,11 +9,13 @@ import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
 import { PlatformIcon } from "./platform-icon";
 import { useListUserPlatforms } from "@workspace/api-client-react";
+import { useDemo } from "@/lib/demo-context";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const [location] = useLocation();
+  const { isDemo, deactivate } = useDemo();
+  const [location, setLocation] = useLocation();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   
   const { data: userPlatforms, isLoading } = useListUserPlatforms({
@@ -23,6 +25,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const activePlatforms = userPlatforms?.filter(p => p.isActive) || [];
 
   const handleSignOut = () => {
+    if (isDemo) {
+      deactivate();
+      setLocation("/");
+      return;
+    }
     signOut({ redirectUrl: basePath || "/" });
   };
 
@@ -75,6 +82,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="p-3 border-t border-[#1f1f1f] flex flex-col items-center gap-3">
+        {isDemo && (
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-[10px] font-bold text-[#dc2350] uppercase tracking-wider">Demo</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-white hover:bg-gray-800 w-10 h-10 rounded-xl"
+              onClick={handleSignOut}
+              title="Exit Demo"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
         <Link href="/feedback">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors cursor-pointer ${location === '/feedback' ? 'text-white bg-gray-800' : ''}`}>
             <FileText className="w-5 h-5" />
@@ -86,9 +107,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         <Avatar className="w-10 h-10 cursor-pointer border border-transparent hover:border-gray-700 transition-colors">
-          <AvatarImage src={user?.imageUrl} />
-          <AvatarFallback className="bg-gray-800 text-white">
-            {user?.firstName?.charAt(0) || 'U'}
+          <AvatarImage src={isDemo ? undefined : user?.imageUrl} />
+          <AvatarFallback className={`text-white ${isDemo ? 'bg-[#dc2350]' : 'bg-gray-800'}`}>
+            {isDemo ? 'D' : (user?.firstName?.charAt(0) || 'U')}
           </AvatarFallback>
         </Avatar>
       </div>
@@ -117,12 +138,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
             <img src={logoWordsPng} alt="KoaMessenger" className="h-7 w-auto" />
+            {isDemo && (
+              <span className="text-[10px] font-bold text-[#dc2350] uppercase tracking-wider">Demo</span>
+            )}
           </div>
           <Avatar className="w-8 h-8">
-            <AvatarImage src={user?.imageUrl} />
-            <AvatarFallback className="bg-gray-800">{user?.firstName?.charAt(0) || 'U'}</AvatarFallback>
+            <AvatarImage src={isDemo ? undefined : user?.imageUrl} />
+            <AvatarFallback className={`text-xs text-white ${isDemo ? 'bg-[#dc2350]' : 'bg-gray-800'}`}>
+              {isDemo ? 'D' : (user?.firstName?.charAt(0) || 'U')}
+            </AvatarFallback>
           </Avatar>
         </header>
+        {isDemo && (
+          <div className="md:hidden flex items-center justify-center h-7 bg-[#dc2350]/10 border-b border-[#dc2350]/30 text-[#dc2350] text-xs font-medium px-4">
+            <PlayCircle className="w-3 h-3 mr-1.5" />
+            Demo mode — data will not be saved
+          </div>
+        )}
 
         <main className="flex-1 overflow-hidden relative">
           {children}

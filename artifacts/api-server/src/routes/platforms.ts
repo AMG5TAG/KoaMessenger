@@ -7,10 +7,10 @@ const router = Router();
 router.get("/platforms", async (req, res) => {
   try {
     const platforms = await db.select().from(platformsTable).orderBy(platformsTable.name);
-    res.json(platforms);
+    return res.json(platforms);
   } catch (err) {
     req.log.error({ err }, "Failed to list platforms");
-    res.status(500).json({ error: "Failed to list platforms" });
+    return res.status(500).json({ error: "Failed to list platforms" });
   }
 });
 
@@ -33,10 +33,10 @@ router.get("/platforms/search", async (req, res) => {
       ? await db.select().from(platformsTable).where(or(...conditions)).orderBy(platformsTable.name)
       : await db.select().from(platformsTable).orderBy(platformsTable.name);
 
-    res.json(platforms);
+    return res.json(platforms);
   } catch (err) {
     req.log.error({ err }, "Failed to search platforms");
-    res.status(500).json({ error: "Failed to search platforms" });
+    return res.status(500).json({ error: "Failed to search platforms" });
   }
 });
 
@@ -48,10 +48,10 @@ router.get("/platforms/:id", async (req, res) => {
     const [platform] = await db.select().from(platformsTable).where(eq(platformsTable.id, id));
     if (!platform) return res.status(404).json({ error: "Not found" });
 
-    res.json(platform);
+    return res.json(platform);
   } catch (err) {
     req.log.error({ err }, "Failed to get platform");
-    res.status(500).json({ error: "Failed to get platform" });
+    return res.status(500).json({ error: "Failed to get platform" });
   }
 });
 

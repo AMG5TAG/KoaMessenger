@@ -1,15 +1,7 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db, userPlatformsTable, platformsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-
-const requireAuth = (req: any, res: any, next: any) => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  req.userId = userId;
-  next();
-};
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
@@ -36,10 +28,10 @@ async function getUserPlatformsWithDetails(userId: string) {
 router.get("/user-platforms", requireAuth, async (req: any, res) => {
   try {
     const result = await getUserPlatformsWithDetails(req.userId);
-    res.json(result);
+    return res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to list user platforms");
-    res.status(500).json({ error: "Failed to list user platforms" });
+    return res.status(500).json({ error: "Failed to list user platforms" });
   }
 });
 
@@ -70,10 +62,10 @@ router.post("/user-platforms", requireAuth, async (req: any, res) => {
       .values({ userId: req.userId, platformId, sortOrder, displayName: displayName ?? null })
       .returning();
 
-    res.status(201).json({ ...up, platform });
+    return res.status(201).json({ ...up, platform });
   } catch (err) {
     req.log.error({ err }, "Failed to add user platform");
-    res.status(500).json({ error: "Failed to add user platform" });
+    return res.status(500).json({ error: "Failed to add user platform" });
   }
 });
 
@@ -90,10 +82,10 @@ router.delete("/user-platforms/:id", requireAuth, async (req: any, res) => {
     if (!up) return res.status(404).json({ error: "Not found" });
 
     await db.delete(userPlatformsTable).where(eq(userPlatformsTable.id, id));
-    res.status(204).send();
+    return res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to remove user platform");
-    res.status(500).json({ error: "Failed to remove user platform" });
+    return res.status(500).json({ error: "Failed to remove user platform" });
   }
 });
 
@@ -122,10 +114,10 @@ router.patch("/user-platforms/:id", requireAuth, async (req: any, res) => {
       .returning();
 
     const [platform] = await db.select().from(platformsTable).where(eq(platformsTable.id, updated.platformId));
-    res.json({ ...updated, platform });
+    return res.json({ ...updated, platform });
   } catch (err) {
     req.log.error({ err }, "Failed to update user platform");
-    res.status(500).json({ error: "Failed to update user platform" });
+    return res.status(500).json({ error: "Failed to update user platform" });
   }
 });
 
@@ -144,10 +136,10 @@ router.post("/user-platforms/reorder", requireAuth, async (req: any, res) => {
     );
 
     const result = await getUserPlatformsWithDetails(req.userId);
-    res.json(result);
+    return res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to reorder platforms");
-    res.status(500).json({ error: "Failed to reorder platforms" });
+    return res.status(500).json({ error: "Failed to reorder platforms" });
   }
 });
 

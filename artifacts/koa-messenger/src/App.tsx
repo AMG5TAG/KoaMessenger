@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "@/lib/queryClient";
+import { DemoProvider, useDemo } from "@/lib/demo-context";
 
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
@@ -110,6 +111,10 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function HomeRedirect() {
+  const { isDemo } = useDemo();
+  if (isDemo) {
+    return <Redirect to="/dashboard" />;
+  }
   return (
     <>
       <Show when="signed-in">
@@ -122,19 +127,42 @@ function HomeRedirect() {
   );
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isSignedIn } = useUser();
+  const { isDemo } = useDemo();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isSignedIn && !isDemo) {
+      setLocation("/");
+    }
+  }, [isSignedIn, isDemo, setLocation]);
+
+  if (!isSignedIn && !isDemo) return null;
+  return <>{children}</>;
+}
+
 function AppRouter() {
   return (
     <Switch>
       <Route path="/" component={HomeRedirect} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
-      
+
       {/* Protected Routes */}
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/add-platforms" component={AddPlatforms} />
-      <Route path="/feedback" component={Feedback} />
-      <Route path="/settings" component={Settings} />
-      
+      <Route path="/dashboard">
+        <ProtectedRoute><Dashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/add-platforms">
+        <ProtectedRoute><AddPlatforms /></ProtectedRoute>
+      </Route>
+      <Route path="/feedback">
+        <ProtectedRoute><Feedback /></ProtectedRoute>
+      </Route>
+      <Route path="/settings">
+        <ProtectedRoute><Settings /></ProtectedRoute>
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -167,13 +195,8 @@ function ClerkProviderWithRoutes() {
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <ClerkQueryClientCacheInvalidator />
-          <AppRouter />
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ClerkQueryClientCacheInvalidator />
+      <AppRouter />
     </ClerkProvider>
   );
 }
@@ -181,7 +204,14 @@ function ClerkProviderWithRoutes() {
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <DemoProvider>
+            <ClerkProviderWithRoutes />
+          </DemoProvider>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
     </WouterRouter>
   );
 }

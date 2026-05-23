@@ -5,6 +5,7 @@ import userPlatformsRouter from "./userPlatforms";
 import usersRouter from "./users";
 import feedbackRouter from "./feedback";
 import notificationsRouter from "./notifications";
+import demoRouter from "./demo";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(userPlatformsRouter);
 router.use(usersRouter);
 router.use(feedbackRouter);
 router.use(notificationsRouter);
+router.use(demoRouter);
 
 export default router;

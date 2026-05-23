@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _demoToken: string | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,14 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Set a demo token that is sent as `X-Demo-Token` on every request.
+ * Pass `null` to clear.
+ */
+export function setDemoToken(token: string | null): void {
+  _demoToken = token;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -356,6 +365,11 @@ export async function customFetch<T = unknown>(
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+  }
+
+  // Attach demo token when configured
+  if (_demoToken && !headers.has("x-demo-token")) {
+    headers.set("x-demo-token", _demoToken);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

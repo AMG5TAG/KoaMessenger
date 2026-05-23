@@ -1,15 +1,7 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
 import { db, usersTable, userPlatformsTable, feedbackTable } from "@workspace/db";
 import { eq, count, sql } from "drizzle-orm";
-
-const requireAuth = (req: any, res: any, next: any) => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  req.userId = userId;
-  next();
-};
+import { requireAuth } from "../middlewares/auth";
 
 async function ensureUser(clerkId: string) {
   let [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
@@ -24,10 +16,10 @@ const router = Router();
 router.get("/users/me", requireAuth, async (req: any, res) => {
   try {
     const user = await ensureUser(req.userId);
-    res.json(user);
+    return res.json(user);
   } catch (err) {
     req.log.error({ err }, "Failed to get user");
-    res.status(500).json({ error: "Failed to get user" });
+    return res.status(500).json({ error: "Failed to get user" });
   }
 });
 
@@ -42,10 +34,10 @@ router.patch("/users/me", requireAuth, async (req: any, res) => {
     if (theme !== undefined) updates.theme = theme;
 
     const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
-    res.json(updated);
+    return res.json(updated);
   } catch (err) {
     req.log.error({ err }, "Failed to update user");
-    res.status(500).json({ error: "Failed to update user" });
+    return res.status(500).json({ error: "Failed to update user" });
   }
 });
 
@@ -68,7 +60,7 @@ router.get("/users/me/stats", requireAuth, async (req: any, res) => {
       .from(feedbackTable)
       .where(eq(feedbackTable.userId, clerkId));
 
-    res.json({
+    return res.json({
       totalPlatforms: totalPlatformsRow?.count ?? 0,
       activePlatforms: activePlatformsRow?.count ?? 0,
       mostUsedCategory: null,
@@ -76,7 +68,7 @@ router.get("/users/me/stats", requireAuth, async (req: any, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get user stats");
-    res.status(500).json({ error: "Failed to get user stats" });
+    return res.status(500).json({ error: "Failed to get user stats" });
   }
 });
 

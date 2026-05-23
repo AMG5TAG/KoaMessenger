@@ -1,11 +1,14 @@
-import { Link } from "wouter";
-import { useClerk, useUser } from "@clerk/react";
-import { Shield, Lock, Layers, Zap, MessageSquare, ArrowRight } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { useUser } from "@clerk/react";
+import { Shield, Lock, Layers, Zap, MessageSquare, ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDemo } from "@/lib/demo-context";
 import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
 
 export default function Home() {
   const { user } = useUser();
+  const { activate } = useDemo();
+  const [, setLocation] = useLocation();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   return (
@@ -49,8 +52,16 @@ export default function Home() {
               Start Messaging <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>
-          <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-lg border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white w-full sm:w-auto">
-            See how it works
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full px-8 h-14 text-lg border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350] w-full sm:w-auto"
+            onClick={async () => {
+              await activate();
+              setLocation("/dashboard");
+            }}
+          >
+            <Play className="mr-2 w-5 h-5" /> Try Demo
           </Button>
         </div>
 
