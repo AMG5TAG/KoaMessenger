@@ -16,11 +16,12 @@ git clone <your-repo>
 cd <repo>
 pnpm install
 
-# Terminal 1 — start the existing web app
+# One command — API, web frontend, and Electron all at once
+pnpm start:desktop
+
+# Or manually in separate terminals:
 pnpm --filter @workspace/api-server run dev
 pnpm --filter @workspace/koa-messenger run dev
-
-# Terminal 2 — start the desktop shell (points at http://localhost:18802 by default)
 pnpm --filter @workspace/koa-messenger-desktop run dev
 ```
 
