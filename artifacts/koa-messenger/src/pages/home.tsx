@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
 import { Shield, Lock, Layers, Zap, MessageSquare, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoPng from "@assets/Logo_-_KoaMessenger_1779503500186.png";
+import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
 
 export default function Home() {
   const { user } = useUser();
@@ -13,8 +13,7 @@ export default function Home() {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-[#1f1f1f]">
         <div className="flex items-center gap-2">
-          <img src={logoPng} alt="KoaMessenger" className="h-8 w-auto" />
-          <span className="font-bold text-xl tracking-tight">KoaMessenger</span>
+          <img src={logoWordsPng} alt="KoaMessenger" className="h-10 w-auto" />
         </div>
         <div className="flex items-center gap-4">
           <Link href="/sign-in" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">

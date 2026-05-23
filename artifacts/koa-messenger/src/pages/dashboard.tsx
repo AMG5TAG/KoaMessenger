@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms, useGetPlatform } from "@workspace/api-client-react";
 import { Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoPng from "@assets/Logo_-_KoaMessenger_1779503500186.png";
+import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 
 export default function Dashboard() {
   const [location] = useLocation();
@@ -31,7 +31,7 @@ export default function Dashboard() {
     return (
       <AppLayout>
         <div className="h-full w-full flex flex-col items-center justify-center bg-[#0a0a0a] text-center px-4">
-          <img src={logoPng} alt="KoaMessenger" className="w-24 h-24 mb-6 opacity-80" />
+          <img src={logoRoundPng} alt="KoaMessenger" className="w-24 h-24 mb-6 opacity-80" />
           <h2 className="text-2xl font-bold text-white mb-2">Welcome to KoaMessenger</h2>
           <p className="text-gray-400 max-w-md mb-8">
             Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.

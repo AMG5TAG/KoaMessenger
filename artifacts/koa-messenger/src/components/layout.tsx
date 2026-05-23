@@ -5,7 +5,8 @@ import { LayoutDashboard, Plus, Settings, MessageSquare, Menu, LogOut, Bell, Fil
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import logoPng from "@assets/Logo_-_KoaMessenger_1779503500186.png";
+import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
+import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
 import { PlatformIcon } from "./platform-icon";
 import { useListUserPlatforms } from "@workspace/api-client-react";
 
@@ -29,7 +30,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full bg-[#0d0d0d] border-r border-[#1f1f1f]">
       <div className="h-16 flex items-center justify-center border-b border-[#1f1f1f]">
         <Link href="/dashboard">
-          <img src={logoPng} alt="KoaMessenger" className="h-8 w-auto cursor-pointer" />
+          <img src={logoRoundPng} alt="KoaMessenger" className="h-10 w-10 cursor-pointer" />
         </Link>
       </div>
 
@@ -115,7 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarContent />
               </SheetContent>
             </Sheet>
-            <img src={logoPng} alt="Koa" className="h-6 w-auto" />
+            <img src={logoWordsPng} alt="KoaMessenger" className="h-7 w-auto" />
           </div>
           <Avatar className="w-8 h-8">
             <AvatarImage src={user?.imageUrl} />
