@@ -25,6 +25,8 @@ pnpm --filter @workspace/koa-messenger run dev
 pnpm --filter @workspace/koa-messenger-desktop run dev
 ```
 
+**Prerequisites:** Node 22+ and `pnpm` (`npm install -g pnpm`).
+
 Override the URL with `KOA_DEV_URL=https://koamessenger-yourname.replit.app pnpm dev` to point the shell at a published deployment instead of your local dev server.
 
 ## Package for distribution

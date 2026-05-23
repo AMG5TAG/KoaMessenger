@@ -6,7 +6,7 @@
   "main": "dist/main.cjs",
   "scripts": {
     "build": "tsc -p tsconfig.json && node ./scripts/build.mjs",
-    "dev": "tsc -p tsconfig.json && node ./scripts/build.mjs && electron .",
+    "dev": "pnpm run build && electron .",
     "start": "electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "package": "pnpm run build && electron-builder"
@@ -20,15 +20,10 @@
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage" }
   },
-  "optionalDependencies": {
-    "@esbuild/darwin-arm64": "0.27.3",
-    "@esbuild/darwin-x64": "0.27.3"
-  },
   "devDependencies": {
     "@types/node": "catalog:",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
-    "esbuild": "0.27.3",
     "typescript": "^5.9.2"
   }
 }

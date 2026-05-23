@@ -1,17 +1,10 @@
-import { build } from "esbuild";
-import { mkdirSync } from "node:fs";
+import { renameSync } from "node:fs";
+import path from "node:path";
 
-mkdirSync("dist", { recursive: true });
+const dist = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "dist");
 
-await build({
-  entryPoints: ["src/main.ts", "src/preload.ts"],
-  outdir: "dist",
-  bundle: true,
-  platform: "node",
-  format: "cjs",
-  outExtension: { ".js": ".cjs" },
-  target: "node20",
-  external: ["electron"],
-  sourcemap: true,
-  logLevel: "info",
-});
+for (const file of ["main.js", "preload.js"]) {
+  const src = path.join(dist, file);
+  const dst = path.join(dist, file.replace(".js", ".cjs"));
+  renameSync(src, dst);
+}
