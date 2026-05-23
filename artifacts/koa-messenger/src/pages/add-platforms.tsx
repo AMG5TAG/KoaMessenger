@@ -7,6 +7,7 @@ import { PlatformIcon } from "@/components/platform-icon";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { isDesktop } from "@/lib/desktop";
 
 export default function AddPlatforms() {
   const [search, setSearch] = useState("");
@@ -66,12 +67,14 @@ export default function AddPlatforms() {
             <p className="text-gray-400 text-lg">Connect your favorite messaging apps to your unified workspace.</p>
           </div>
 
-          <div className="mb-8 bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
-            <Info className="w-5 h-5 text-[#dc2350] shrink-0 mt-0.5" />
-            <div className="text-sm text-gray-300 leading-relaxed">
-              <strong className="text-white">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
+          {!isDesktop() && (
+            <div className="mb-8 bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
+              <Info className="w-5 h-5 text-[#dc2350] shrink-0 mt-0.5" />
+              <div className="text-sm text-gray-300 leading-relaxed">
+                <strong className="text-white">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="relative mb-12 max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
