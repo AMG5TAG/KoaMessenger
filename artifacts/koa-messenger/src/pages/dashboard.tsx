@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearch } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
@@ -36,8 +37,8 @@ function saveTabsForUp(upId: string, tabs: Tab[]) {
 }
 
 export default function Dashboard() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const upParam = searchParams.get("up");
+  const search = useSearch();
+  const upParam = new URLSearchParams(search).get("up");
 
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
