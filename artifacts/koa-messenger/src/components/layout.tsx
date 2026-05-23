@@ -80,9 +80,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   />
                   {/* Notification badge */}
                   {unread > 0 && !active && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#dc2350] text-white text-[10px] font-bold flex items-center justify-center leading-none z-10">
-                      {unread > 99 ? "99+" : unread}
+                    <span className="absolute -top-1.5 -right-1.5 z-10 flex items-center justify-center">
+                      {unread <= 9 ? (
+                        /* Small pill for 1–9 — dot with number */
+                        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#dc2350] text-white text-[11px] font-bold flex items-center justify-center leading-none shadow-lg ring-2 ring-[#0d0d0d]">
+                          {unread}
+                        </span>
+                      ) : (
+                        /* Larger pill for 10+ */
+                        <span className="min-w-[22px] h-5 px-1.5 rounded-full bg-[#dc2350] text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-lg ring-2 ring-[#0d0d0d]">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
                     </span>
+                  )}
+                  {/* Pulsing dot when platform is loaded but unread count isn't parseable yet */}
+                  {unread === 0 && !active && false /* reserved for future heuristic */ && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#dc2350] ring-2 ring-[#0d0d0d] z-10" />
                   )}
                   {/* Display name label on hover for multi-account */}
                   {up.displayName && (

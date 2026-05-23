@@ -296,10 +296,25 @@ function PlatformPane({
   // Attach webview event listeners once, when the element is available
   const attachWebviewListeners = useCallback(
     (el: HTMLElement) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wv = el as any;
+
+      const syncTitle = async () => {
+        try {
+          // executeJavaScript gives us the live title even without a title-changed event
+          const title: string = await wv.executeJavaScript("document.title");
+          const count = parseUnreadFromTitle(title);
+          setCount(upId, tabId, count);
+        } catch {
+          // webview not ready yet — ignore
+        }
+      };
+
       const onFinish = () => {
         setLoading(false);
         setTimedOut(false);
         if (timerRef.current) clearTimeout(timerRef.current);
+        syncTitle();
       };
       const onFail = (e: Event) => {
         const err = e as unknown as { errorCode?: number };

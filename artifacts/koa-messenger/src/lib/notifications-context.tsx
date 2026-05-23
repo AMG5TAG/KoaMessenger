@@ -55,17 +55,26 @@ export function useNotifications() {
 }
 
 export function parseUnreadFromTitle(title: string): number {
-  // Handles: "(3) Facebook", "[5] App", "App (3)", "App · 3", "3 unread"
+  if (!title) return 0;
+  // Ordered from most specific to least to avoid false matches.
   const patterns = [
-    /^\((\d+)\)/,       // (3) at start
-    /^\[(\d+)\]/,       // [3] at start
-    /\((\d+)\)\s*$/,    // (3) at end
-    /\[(\d+)\]\s*$/,    // [3] at end
-    /·\s*(\d+)/,        // · 3
+    /^\((\d+)\)/,                   // (3) App name  — WhatsApp, Messenger, Gmail, Discord, Telegram
+    /^\[(\d+)\]/,                   // [3] App name
+    /\((\d+)\)\s*[-–|]/,           // (3) - Gmail, (3) | Slack
+    /\|\s*(\d+)\s*new/i,           // | 3 new
+    /·\s*(\d+)\s*(new|unread)?/i,  // · 3 new  — Telegram Web
+    /\b(\d+)\s+unread/i,           // 3 unread
+    /\b(\d+)\s+new\s+message/i,    // 3 new messages
+    /\((\d+)\)\s*$/,               // App name (3)  — at end
+    /\[(\d+)\]\s*$/,               // App name [3]  — at end
+    /\s(\d+)\s*$/,                 // App name 3    — plain number at very end (low confidence, last resort)
   ];
   for (const pat of patterns) {
     const m = title.match(pat);
-    if (m) return parseInt(m[1]);
+    if (m) {
+      const n = parseInt(m[1]);
+      if (n > 0 && n < 10000) return n; // sanity-check: ignore wild numbers
+    }
   }
   return 0;
 }
