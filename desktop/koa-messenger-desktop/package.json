@@ -1,0 +1,30 @@
+{
+  "name": "@workspace/koa-messenger-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KoaMessenger desktop shell (Electron) — true per-account isolation via webview partitions.",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ./scripts/build.mjs",
+    "dev": "tsc -p tsconfig.json && node ./scripts/build.mjs && electron .",
+    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "pnpm run build && electron-builder"
+  },
+  "build": {
+    "appId": "au.com.koapos.koamessenger",
+    "productName": "KoaMessenger",
+    "files": ["dist/**/*", "package.json"],
+    "directories": { "output": "release" },
+    "mac": { "category": "public.app-category.social-networking" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" }
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "esbuild": "0.27.3",
+    "typescript": "^5.9.2"
+  }
+}

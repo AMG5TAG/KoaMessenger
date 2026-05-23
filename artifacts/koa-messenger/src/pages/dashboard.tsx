@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms, useGetPlatform } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, X, Plus, ShieldAlert, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isDesktop } from "@/lib/desktop";
 import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 
 type Tab = { id: string; createdAt: number };
@@ -194,11 +195,39 @@ function PlatformPane({
   tabId: string;
   active: boolean;
 }) {
-  const blocked = platform.embedsInIframe === false;
+  const desktop = isDesktop();
+  // In Electron we use <webview> with per-tab partitions, so iframe-blocking
+  // platforms work fine. Only fall back when running in a plain browser.
+  const blocked = !desktop && platform.embedsInIframe === false;
   const [loading, setLoading] = useState(!blocked);
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const webviewRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!desktop || blocked) return;
+    const el = webviewRef.current;
+    if (!el) return;
+    const onFinish = () => {
+      setLoading(false);
+      setTimedOut(false);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    const onFail = (e: Event) => {
+      const err = e as unknown as { errorCode?: number };
+      // -3 = ABORTED (often a redirect, not a real failure)
+      if (err.errorCode === -3) return;
+      setLoading(false);
+      setTimedOut(true);
+    };
+    el.addEventListener("did-finish-load", onFinish);
+    el.addEventListener("did-fail-load", onFail as EventListener);
+    return () => {
+      el.removeEventListener("did-finish-load", onFinish);
+      el.removeEventListener("did-fail-load", onFail as EventListener);
+    };
+  }, [desktop, blocked, tabId]);
 
   useEffect(() => {
     if (blocked) return;
@@ -242,22 +271,35 @@ function PlatformPane({
           </span>
         </div>
       )}
-      <iframe
-        ref={iframeRef}
-        src={platform.url}
-        title={`${platform.name} (${tabId})`}
-        name={`km-${tabId}`}
-        className="w-full h-full border-none bg-white"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-storage-access-by-user-activation"
-        allow="clipboard-read; clipboard-write; encrypted-media; fullscreen"
-        referrerPolicy="strict-origin-when-cross-origin"
-        loading={active ? "eager" : "lazy"}
-        onLoad={() => {
-          setLoading(false);
-          setTimedOut(false);
-          if (timerRef.current) clearTimeout(timerRef.current);
-        }}
-      />
+      {desktop ? (
+        <webview
+          ref={(el) => {
+            webviewRef.current = el;
+          }}
+          src={platform.url}
+          partition={`persist:plat-${platform.id}-${tabId}`}
+          allowpopups={"true" as unknown as boolean}
+          useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+          style={{ width: "100%", height: "100%", display: "flex" }}
+        />
+      ) : (
+        <iframe
+          ref={iframeRef}
+          src={platform.url}
+          title={`${platform.name} (${tabId})`}
+          name={`km-${tabId}`}
+          className="w-full h-full border-none bg-white"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-storage-access-by-user-activation"
+          allow="clipboard-read; clipboard-write; encrypted-media; fullscreen"
+          referrerPolicy="strict-origin-when-cross-origin"
+          loading={active ? "eager" : "lazy"}
+          onLoad={() => {
+            setLoading(false);
+            setTimedOut(false);
+            if (timerRef.current) clearTimeout(timerRef.current);
+          }}
+        />
+      )}
     </div>
   );
 }
