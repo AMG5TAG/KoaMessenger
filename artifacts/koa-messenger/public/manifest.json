@@ -6,6 +6,12 @@
   "display": "standalone",
   "icons": [
     {
+      "src": "logo-app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
       "src": "logo.svg",
       "sizes": "any",
       "type": "image/svg+xml"
