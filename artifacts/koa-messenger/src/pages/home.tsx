@@ -108,7 +108,13 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-[#1a1a1a] text-center text-gray-500">
-        <p>© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
+        <p className="mb-2">© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
+        <p className="text-sm">
+          Proudly Australian. <span aria-label="Australian flag">🇦🇺</span> Designed and Hosted by{' '}
+          <a href="https://koapos.com.au" target="_blank" rel="noopener noreferrer" className="text-[#dc2350] hover:text-[#e34f73] underline underline-offset-2 transition-colors">
+            KoaSOFT – Web Design, Software and App Development
+          </a>
+        </p>
       </footer>
     </div>
   );
