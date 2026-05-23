@@ -224,14 +224,16 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              {/* Platform panes — one per tab, all kept mounted */}
+              {/* Platform panes — one per tab, all kept mounted via visibility (display:none would detach webviews) */}
               <div className="flex-1 relative">
                 {state.tabs.map((tab) => (
                   <div
                     key={tab.id}
                     className="absolute inset-0"
                     style={{
-                      display: tab.id === state.activeTabId ? "block" : "none",
+                      visibility: tab.id === state.activeTabId ? "visible" : "hidden",
+                      pointerEvents: tab.id === state.activeTabId ? "auto" : "none",
+                      zIndex: tab.id === state.activeTabId ? 1 : 0,
                     }}
                   >
                     <PlatformPane
