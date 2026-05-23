@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { setDemoToken } from "@workspace/api-client-react";
+import { toast } from "@/hooks/use-toast";
 
 const DEMO_TOKEN = "demo";
 const STORAGE_KEY = "koa-demo-mode";
@@ -56,6 +57,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setDemoToken(DEMO_TOKEN);
     setIsDemo(true);
     queryClient.clear();
+    toast({
+      title: "Demo mode active",
+      description: "Your demo data is temporary and will be removed when you exit. Create an account to save your platforms and preferences.",
+      variant: "default",
+      duration: 8000,
+    });
   }, [queryClient]);
 
   const deactivate = useCallback(() => {
