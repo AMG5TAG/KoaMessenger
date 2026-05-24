@@ -14,7 +14,7 @@ import {
   SiGoogle, SiWebex, SiImessage, SiThreema,
   SiWire, SiKeybase, SiIcq,
   SiGroupme, SiPushbullet, SiCircle, SiTuta,
-  SiWorkplace,
+  SiWorkplace, SiMeta,
 } from "react-icons/si";
 import {
   FaFacebook, FaFacebookMessenger, FaSkype, FaViber,
@@ -100,6 +100,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   bluesky: <SiBluesky className="w-full h-full" />,
   "workplace by meta": <SiWorkplace className="w-full h-full" />,
   workplace: <SiWorkplace className="w-full h-full" />,
+  "meta business chat": <SiMeta className="w-full h-full" />,
   vk: <SiVk className="w-full h-full" />,
 
   /* ── email ── */

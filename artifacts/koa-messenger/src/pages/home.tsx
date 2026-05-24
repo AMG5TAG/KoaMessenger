@@ -18,7 +18,7 @@ const SCREENSHOTS = [
   },
   {
     src: `${import.meta.env.BASE_URL}screenshots/add-platforms.png`,
-    title: "Browse 60+ Platforms",
+    title: "Browse 65+ Platforms",
     desc: "Search and add any messaging service you use — from WhatsApp to Mastodon to Jitsi — all in a few clicks.",
   },
 ];
@@ -186,7 +186,7 @@ export default function Home() {
         </h1>
 
         <p className="text-xl text-gray-400 mb-10 max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
-          KoaMessenger brings WhatsApp, Discord, Telegram, and 60+ more into a single, secure command center. Your data never leaves your browser.
+          KoaMessenger brings WhatsApp, Discord, Telegram, and 65+ more into a single, secure command center. Your data never leaves your browser.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500 fill-mode-both">
@@ -213,7 +213,7 @@ export default function Home() {
       {/* Supported Platforms Marquee */}
       <section className="py-12 border-y border-[#1a1a1a] overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 mb-8 text-center">
-          <p className="text-sm text-gray-500 uppercase tracking-wider">Supports 60+ platforms</p>
+          <p className="text-sm text-gray-500 uppercase tracking-wider">Supports 65+ platforms</p>
         </div>
         <div className="flex animate-marquee whitespace-nowrap">
           {[
