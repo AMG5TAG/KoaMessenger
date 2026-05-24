@@ -13,7 +13,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import newAppIconPng from "@assets/Logo_-_App_Icon_-_KoaMessenger_1779634081465.png";
+import newAppIconPng from "@assets/Logo_-_Icon_-_KoaMessenger_1779635100578.png";
 import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
 import { PlatformIcon } from "./platform-icon";
 import {

@@ -12,7 +12,7 @@ import {
 } from "@/lib/notifications-context";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import newAppIconPng from "@assets/Logo_-_App_Icon_-_KoaMessenger_1779634081465.png";
+import newAppIconPng from "@assets/Logo_-_Icon_-_KoaMessenger_1779635100578.png";
 
 type Tab = { id: string; createdAt: number };
 

@@ -231,15 +231,65 @@ html.light .bg-\[\#171717\] {
 html.light .bg-\[\#1a0a10\] {
   background-color: #fff0f3 !important;
 }
+html.light .bg-\[\#141414\] {
+  background-color: hsl(var(--card)) !important;
+}
+html.light .bg-\[\#1f1f1f\] {
+  background-color: hsl(var(--muted)) !important;
+}
 html.light .bg-\[\#2a2a2a\] {
   background-color: hsl(var(--input)) !important;
 }
 
+/* "Added" account labels & remove button — light green */
+html.light .bg-\[\#1a2e1e\] {
+  background-color: #dcfce7 !important;
+}
+html.light .text-\[\#4ade80\] {
+  color: #16a34a !important;
+}
+html.light .hover\:bg-red-950:hover {
+  background-color: #fee2e2 !important;
+}
+html.light .hover\:text-red-400:hover {
+  color: #dc2626 !important;
+}
+
+/* Amber badge (New tab) — light amber */
+html.light .bg-amber-950\/60 {
+  background-color: #fef3c7 !important;
+}
+html.light .text-amber-300 {
+  color: #b45309 !important;
+}
+
+/* Banner backgrounds */
+html.light .bg-\[\#1a0f14\] {
+  background-color: #fff0f3 !important;
+}
+
+/* Text */
+html.light .text-gray-300 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
 /* Borders */
+html.light .border-gray-800 {
+  border-color: hsl(var(--border)) !important;
+}
+html.light .border-gray-700 {
+  border-color: hsl(var(--border)) !important;
+}
 html.light .border-\[\#1f1f1f\] {
   border-color: hsl(var(--sidebar-border)) !important;
 }
 html.light .border-\[\#2a2a2a\] {
+  border-color: hsl(var(--border)) !important;
+}
+html.light .border-\[\#dc2350\]\/30 {
+  border-color: rgba(220, 35, 80, 0.25) !important;
+}
+html.light .hover\:border-gray-600:hover {
   border-color: hsl(var(--border)) !important;
 }
 html.light .border-transparent {
@@ -277,6 +327,12 @@ html.light .hover\:bg-\[\#151515\]:hover {
 }
 html.light .hover\:bg-\[\#1a0a10\]:hover {
   background-color: hsl(var(--secondary)) !important;
+}
+html.light .hover\:bg-\[\#1f1f1f\]:hover {
+  background-color: hsl(var(--input)) !important;
+}
+html.light .hover\:bg-\[\#141414\]:hover {
+  background-color: hsl(var(--card)) !important;
 }
 
 /* Focus / active states */
