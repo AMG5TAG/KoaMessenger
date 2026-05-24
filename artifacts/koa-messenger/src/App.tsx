@@ -9,9 +9,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
-import { DemoProvider, useDemo } from "@/lib/demo-context";
 import { NotificationProvider } from "@/lib/notifications-context";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
@@ -79,13 +78,6 @@ const clerkAppearance = {
 
 function SignInPage() {
   const [, setLocation] = useLocation();
-  const { activate } = useDemo();
-
-  const handleTryDemo = async () => {
-    await activate();
-    setLocation("/dashboard");
-  };
-
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
       <Button
@@ -96,25 +88,12 @@ function SignInPage() {
         <ArrowLeft className="w-4 h-4 mr-2" /> Back to site
       </Button>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-      <Button
-        variant="outline"
-        className="mt-4 rounded-full px-6 h-11 border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350]"
-        onClick={handleTryDemo}
-      >
-        <Play className="mr-2 w-4 h-4" /> Try Demo
-      </Button>
     </div>
   );
 }
 
 function SignUpPage() {
   const [, setLocation] = useLocation();
-  const { activate } = useDemo();
-
-  const handleTryDemo = async () => {
-    await activate();
-    setLocation("/dashboard");
-  };
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
@@ -126,13 +105,6 @@ function SignUpPage() {
         <ArrowLeft className="w-4 h-4 mr-2" /> Back to site
       </Button>
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-      <Button
-        variant="outline"
-        className="mt-4 rounded-full px-6 h-11 border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350]"
-        onClick={handleTryDemo}
-      >
-        <Play className="mr-2 w-4 h-4" /> Try Demo
-      </Button>
     </div>
   );
 }
@@ -160,10 +132,6 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function HomeRedirect() {
-  const { isDemo } = useDemo();
-  if (isDemo) {
-    return <Redirect to="/dashboard" />;
-  }
   return (
     <>
       <Show when="signed-in">
@@ -178,16 +146,15 @@ function HomeRedirect() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn } = useUser();
-  const { isDemo } = useDemo();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isSignedIn && !isDemo) {
+    if (!isSignedIn) {
       setLocation("/");
     }
-  }, [isSignedIn, isDemo, setLocation]);
+  }, [isSignedIn, setLocation]);
 
-  if (!isSignedIn && !isDemo) return null;
+  if (!isSignedIn) return null;
   return <>{children}</>;
 }
 
@@ -256,9 +223,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <NotificationProvider>
-            <DemoProvider>
-              <ClerkProviderWithRoutes />
-            </DemoProvider>
+            <ClerkProviderWithRoutes />
             <Toaster />
           </NotificationProvider>
         </TooltipProvider>

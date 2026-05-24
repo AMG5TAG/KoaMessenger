@@ -1,12 +1,6 @@
 import { getAuth } from "@clerk/express";
 
-export const DEMO_USER_ID = "demo_user";
-
 export function getUserId(req: any): string | null {
-  const demoToken = req.headers["x-demo-token"];
-  if (demoToken === "demo") {
-    return DEMO_USER_ID;
-  }
   return getAuth(req)?.userId ?? null;
 }
 

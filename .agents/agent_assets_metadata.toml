@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "g_pTK0YA8W8VFE48qy0Ce"
+uri = "file://artifacts/koa-messenger/public/screenshots/dashboard-whatsapp.png"
+type = "image"
+title = "Dashboard with WhatsApp"
+
+[[generated]]
+id = "E0QWkudm0PoQ6Wj6pKmdb"
+uri = "file://artifacts/koa-messenger/public/screenshots/add-platforms.png"
+type = "image"
+title = "Add platforms browser"
+
+[[generated]]
+id = "TajCHuxpuimRR-HWgVYH6"
+uri = "file://artifacts/koa-messenger/public/screenshots/dashboard-telegram.png"
+type = "image"
+title = "Dashboard with Telegram"
