@@ -59,12 +59,14 @@ export interface UserProfile {
   createdAt: string;
   notificationsEnabled?: boolean;
   theme?: string;
+  syncAccounts?: boolean;
 }
 
 export interface UserProfileUpdate {
   displayName?: string;
   notificationsEnabled?: boolean;
   theme?: string;
+  syncAccounts?: boolean;
 }
 
 export interface UserStats {

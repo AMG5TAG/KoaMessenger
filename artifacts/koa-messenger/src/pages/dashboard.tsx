@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearch, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
-import { useListUserPlatforms } from "@workspace/api-client-react";
+import { useListUserPlatforms, useGetMe } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
@@ -58,6 +58,8 @@ export default function Dashboard() {
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
+  const { data: me } = useGetMe({ query: { queryKey: ["/api/users/me"] } });
+  const syncOn = me?.syncAccounts !== false; // default true
 
   // Navigate to platform when user clicks a native macOS notification banner
   useDesktopNotificationClick((upId) => setLocation(`/dashboard?up=${upId}`));
@@ -248,6 +250,7 @@ export default function Dashboard() {
                       tabId={tab.id}
                       tabLabel={`Tab ${idx + 1}`}
                       active={isActive && tab.id === state.activeTabId}
+                      syncOn={syncOn}
                     />
                   </div>
                 ))}
@@ -288,12 +291,14 @@ function PlatformPane({
   tabId,
   tabLabel,
   active,
+  syncOn,
 }: {
   platform: PlatformMeta;
   upId: number;
   tabId: string;
   tabLabel?: string;
   active: boolean;
+  syncOn: boolean;
 }) {
   const desktop = isDesktop();
   const { setCount, clearCount } = useNotifications();
@@ -405,7 +410,7 @@ function PlatformPane({
         <webview
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
-          partition={`persist:koa-up-${upId}-tab-${tabId}`}
+          partition={`persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`}
           allowpopups={"true" as unknown as boolean}
           useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
           style={{ width: "100%", height: "100%", display: "flex" }}

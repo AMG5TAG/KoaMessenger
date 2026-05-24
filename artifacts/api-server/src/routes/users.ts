@@ -26,12 +26,13 @@ router.get("/users/me", requireAuth, async (req: any, res) => {
 router.patch("/users/me", requireAuth, async (req: any, res) => {
   try {
     const user = await ensureUser(req.userId);
-    const { displayName, notificationsEnabled, theme } = req.body;
+    const { displayName, notificationsEnabled, theme, syncAccounts } = req.body;
 
     const updates: Partial<typeof usersTable.$inferInsert> = {};
     if (displayName !== undefined) updates.displayName = displayName;
     if (notificationsEnabled !== undefined) updates.notificationsEnabled = notificationsEnabled;
     if (theme !== undefined) updates.theme = theme;
+    if (syncAccounts !== undefined) updates.syncAccounts = syncAccounts;
 
     const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
     return res.json(updated);

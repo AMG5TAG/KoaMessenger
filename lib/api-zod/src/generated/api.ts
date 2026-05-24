@@ -178,7 +178,8 @@ export const GetMeResponse = zod.object({
   "displayName": zod.string(),
   "createdAt": zod.string(),
   "notificationsEnabled": zod.boolean().optional(),
-  "theme": zod.string().optional()
+  "theme": zod.string().optional(),
+  "syncAccounts": zod.boolean().optional()
 })
 
 
@@ -188,7 +189,8 @@ export const GetMeResponse = zod.object({
 export const UpdateMeBody = zod.object({
   "displayName": zod.string().optional(),
   "notificationsEnabled": zod.boolean().optional(),
-  "theme": zod.string().optional()
+  "theme": zod.string().optional(),
+  "syncAccounts": zod.boolean().optional()
 })
 
 export const UpdateMeResponse = zod.object({
@@ -197,7 +199,8 @@ export const UpdateMeResponse = zod.object({
   "displayName": zod.string(),
   "createdAt": zod.string(),
   "notificationsEnabled": zod.boolean().optional(),
-  "theme": zod.string().optional()
+  "theme": zod.string().optional(),
+  "syncAccounts": zod.boolean().optional()
 })
 
 

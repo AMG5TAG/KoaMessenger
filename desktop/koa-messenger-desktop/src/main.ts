@@ -45,7 +45,7 @@ const ALLOWED_PERMISSIONS = new Set([
 
 const hardenedSessions = new WeakSet<Electron.Session>();
 function ensurePartitionHardened(partition: string | undefined) {
-  if (!partition || !partition.startsWith("persist:koa-up-")) return;
+  if (!partition || !partition.startsWith("persist:koa-up")) return;
   const ses = session.fromPartition(partition);
   if (hardenedSessions.has(ses)) return;
   hardenedSessions.add(ses);
@@ -168,7 +168,7 @@ function installWebviewHardening() {
       (webPreferences as Record<string, unknown>).allowRunningInsecureContent = false;
 
       const partition = (params as { partition?: string }).partition;
-      if (!partition || !partition.startsWith("persist:koa-up-")) {
+      if (!partition || !partition.startsWith("persist:koa-up")) {
         (params as { src?: string }).src = "about:blank";
         return;
       }

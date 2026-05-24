@@ -8,6 +8,7 @@ export const usersTable = pgTable("users", {
   displayName: text("display_name").notNull().default("KoaUser"),
   notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
   theme: text("theme").notNull().default("system"),
+  syncAccounts: boolean("sync_accounts").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

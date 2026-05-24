@@ -10,4 +10,5 @@ export interface UserProfileUpdate {
   displayName?: string;
   notificationsEnabled?: boolean;
   theme?: string;
+  syncAccounts?: boolean;
 }

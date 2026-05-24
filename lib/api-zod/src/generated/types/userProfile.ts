@@ -13,4 +13,5 @@ export interface UserProfile {
   createdAt: string;
   notificationsEnabled?: boolean;
   theme?: string;
+  syncAccounts?: boolean;
 }

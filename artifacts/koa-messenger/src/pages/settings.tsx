@@ -13,7 +13,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Bell, User, Moon, Sun, Monitor, Shield } from "lucide-react";
+import { Loader2, Bell, User, Moon, Sun, Monitor, Shield, Smartphone, Laptop } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { PlatformIcon } from "@/components/platform-icon";
 
@@ -35,11 +35,13 @@ export default function Settings() {
   const [displayName, setDisplayName] = useState("");
   const [theme, setTheme] = useState("system");
   const [globalNotifs, setGlobalNotifs] = useState(true);
+  const [syncAccounts, setSyncAccounts] = useState(true);
 
   useEffect(() => {
     if (me) {
       setDisplayName(me.displayName ?? "");
       setTheme(me.theme ?? "system");
+      setSyncAccounts(me.syncAccounts ?? true);
     }
   }, [me]);
 
@@ -51,7 +53,7 @@ export default function Settings() {
 
   const saveProfile = () => {
     updateMe.mutate(
-      { data: { displayName, theme } },
+      { data: { displayName, theme, syncAccounts } },
       {
         onSuccess: () => {
           toast({ title: "Saved", description: "Profile updated." });
@@ -135,6 +137,48 @@ export default function Settings() {
                 {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Profile"}
               </Button>
             </div>
+          </section>
+
+          {/* Account Sync */}
+          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <Smartphone className="w-5 h-5 text-[#dc2350]" />
+              <h2 className="text-lg font-semibold text-white">Account Sync</h2>
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-white text-sm font-medium">Sync across web and desktop</p>
+                <p className="text-gray-500 text-xs">When enabled, your platform logins are shared between the browser and the macOS app.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setSyncAccounts(!syncAccounts);
+                  updateMe.mutate(
+                    { data: { syncAccounts: !syncAccounts } },
+                    {
+                      onSuccess: () => {
+                        toast({ title: "Saved", description: !syncAccounts ? "Account sync enabled." : "Account sync disabled." });
+                        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                      },
+                      onError: () => toast({ title: "Error", description: "Failed to save.", variant: "destructive" }),
+                    }
+                  );
+                }}
+                className={`relative w-12 h-6 rounded-full transition-all ${
+                  syncAccounts ? "bg-[#dc2350]" : "bg-[#2a2a2a]"
+                }`}
+                data-testid="toggle-sync-accounts"
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    syncAccounts ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Turning this off isolates your desktop sessions so they never overlap with your browser sessions.
+            </p>
           </section>
 
           {/* Theme */}
