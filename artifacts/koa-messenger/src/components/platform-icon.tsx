@@ -208,9 +208,15 @@ export function PlatformIcon(props: PlatformIconProps) {
   }
 
   const normalizedName = name.toLowerCase();
-  const icon = Object.entries(ICON_MAP).find(([key]) =>
-    normalizedName.includes(key)
-  )?.[1];
+  // Exact match first (fastest, avoids all substring collisions like
+  // "linkedin" matching "line", "jitsi meet" matching "meet", etc.)
+  // Fall back to longest-key-first substring search so compound names
+  // like "google meet" beat the shorter "meet" key.
+  const icon: React.ReactNode =
+    ICON_MAP[normalizedName] ??
+    Object.entries(ICON_MAP)
+      .sort(([a], [b]) => b.length - a.length)
+      .find(([key]) => normalizedName.includes(key))?.[1];
 
   const sizeClass = size ? SIZE_MAP[size] : "";
   const combinedClass = [sizeClass, className].filter(Boolean).join(" ");
