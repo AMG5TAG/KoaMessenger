@@ -351,6 +351,15 @@ function PlatformPane({
         if (timerRef.current) clearTimeout(timerRef.current);
         syncTitle();
       };
+      // dom-ready fires MUCH earlier than did-finish-load (as soon as the
+      // page's DOM is parsed, before subresources). If did-finish-load is
+      // for some reason never firing on a slow platform, this still hides
+      // the loading overlay so the user sees the actual page.
+      const onDomReady = () => {
+        setLoading(false);
+        setTimedOut(false);
+        if (timerRef.current) clearTimeout(timerRef.current);
+      };
       const onFail = (e: Event) => {
         const err = e as unknown as { errorCode?: number };
         if (err.errorCode === -3) return; // aborted (normal on redirect)
@@ -380,6 +389,7 @@ function PlatformPane({
         setLoading(false);
       };
 
+      el.addEventListener("dom-ready", onDomReady);
       el.addEventListener("did-finish-load", onFinish);
       el.addEventListener("did-fail-load", onFail as EventListener);
       el.addEventListener("page-title-updated", onTitleUpdate as EventListener);
@@ -388,6 +398,7 @@ function PlatformPane({
       el.addEventListener("unresponsive", onUnresponsive);
 
       return () => {
+        el.removeEventListener("dom-ready", onDomReady);
         el.removeEventListener("did-finish-load", onFinish);
         el.removeEventListener("did-fail-load", onFail as EventListener);
         el.removeEventListener("page-title-updated", onTitleUpdate as EventListener);
@@ -464,13 +475,18 @@ function PlatformPane({
         </div>
       )}
       {desktop ? (
-        // IMPORTANT: <webview> in Electron must use `display: inline-flex`
-        // (NOT `display: flex`). Using `display: flex` on the webview tag
-        // itself causes a known Electron/Chromium bug where the embedded
-        // BrowserView renders as 0×0 — the user sees a SOLID BLACK area
-        // (the parent's background) instead of the loaded page. This was
-        // the root cause of the "black screen when I click a platform" bug.
-        // See: https://www.electronjs.org/docs/latest/api/webview-tag#css-styling-notes
+        // CRITICAL Electron <webview> sizing rules — read before touching:
+        // 1. `display: flex` on the webview tag itself causes the embedded
+        //    BrowserView to render as 0×0 (solid black). Use `inline-flex`
+        //    or rely on absolute positioning.
+        // 2. `width: 100%; height: 100%` with `display: inline-flex` ALSO
+        //    misbehaves when the chain of parents uses absolute positioning
+        //    + flex (which ours does), because inline-flex's preferred size
+        //    is based on contents, not container.
+        // 3. The bullet-proof pattern that every production Electron app
+        //    settles on is: explicit `position: absolute; inset: 0`. This
+        //    sidesteps every flex/sizing edge case and forces the webview
+        //    to fill its `position: relative` parent.
         <webview
           key={reloadKey}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
@@ -478,7 +494,16 @@ function PlatformPane({
           partition={`persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`}
           allowpopups={"true" as unknown as boolean}
           useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-          style={{ width: "100%", height: "100%", display: "inline-flex" }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: "100%",
+            display: "inline-flex",
+          }}
         />
       ) : (
         <iframe
