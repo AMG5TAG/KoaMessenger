@@ -227,6 +227,7 @@ export default function Dashboard() {
                   tabId={state.activeTabId}
                   syncOn={syncOn}
                   platformName={up.displayName ?? up.platform.name}
+                  onSignOut={() => closeTab(upId, state.activeTabId)}
                 />
                 <Button
                   variant="ghost"
@@ -446,7 +447,8 @@ function PlatformPane({
 
   return (
     <div className="w-full h-full relative">
-      {loading && !timedOut && (
+      {/* Loading spinner — only shown for browser iframes (desktop webviews have native loading chrome) */}
+      {!desktop && loading && !timedOut && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] z-10">
           <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
         </div>
@@ -515,11 +517,13 @@ function SignOutTabButton({
   tabId,
   syncOn,
   platformName,
+  onSignOut,
 }: {
   upId: number;
   tabId: string;
   syncOn: boolean;
   platformName: string;
+  onSignOut: () => void;
 }) {
   const desktop = isDesktop();
   const { toast } = useToast();
@@ -539,11 +543,13 @@ function SignOutTabButton({
       if (result?.ok) {
         toast({
           title: `Signed out of ${platformName}`,
-          description: "Reload the page to log in again.",
-          duration: 5000,
+          description: "Opening a fresh session...",
+          duration: 3000,
         });
-        // Force the webview to fully reload with cleared state
-        window.location.reload();
+        // Close this tab — Dashboard will create a fresh one automatically
+        // (closeTab in Dashboard always ensures at least one tab exists).
+        // The new tab gets a new empty partition so the user sees the login page.
+        onSignOut();
       } else {
         toast({
           title: "Couldn't sign out",
