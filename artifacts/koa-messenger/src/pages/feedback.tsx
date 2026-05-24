@@ -94,7 +94,7 @@ export default function Feedback() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-white">Feedback</h1>
+              <h1 className="text-2xl font-bold text-foreground">Feedback</h1>
               <p className="text-gray-400 text-sm mt-1">
                 Help shape KoaMessenger — request features or suggest new platforms.
               </p>
@@ -114,7 +114,7 @@ export default function Feedback() {
           {/* Form */}
           {showForm && user && (
             <div className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6 mb-6">
-              <h2 className="text-lg font-semibold text-white mb-4">New Feedback</h2>
+              <h2 className="text-lg font-semibold text-foreground mb-4">New Feedback</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Type selector */}
                 <div className="flex gap-3">
@@ -152,7 +152,7 @@ export default function Feedback() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Brief title for your feedback"
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
                     data-testid="input-feedback-title"
                   />
                 </div>
@@ -163,7 +163,7 @@ export default function Feedback() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe your idea in detail..."
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white resize-none"
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground resize-none"
                     rows={4}
                     data-testid="input-feedback-description"
                   />
@@ -176,7 +176,7 @@ export default function Feedback() {
                       value={platformName}
                       onChange={(e) => setPlatformName(e.target.value)}
                       placeholder="e.g. BeReal, Clubhouse"
-                      className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                      className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
                       data-testid="input-platform-name"
                     />
                   </div>
@@ -213,7 +213,7 @@ export default function Feedback() {
                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
                   activeTab === tab
                     ? "bg-[#dc2350] text-white"
-                    : "text-gray-400 hover:text-white"
+                    : "text-gray-400 hover:text-foreground"
                 }`}
                 data-testid={`tab-feedback-${tab}`}
               >
@@ -258,7 +258,7 @@ export default function Feedback() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-semibold text-white text-sm leading-snug">{item.title}</h3>
+                      <h3 className="font-semibold text-foreground text-sm leading-snug">{item.title}</h3>
                       <div className="flex gap-2 shrink-0">
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-medium ${

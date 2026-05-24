@@ -109,7 +109,7 @@ export default function Settings() {
       <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-6">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
             <p className="text-gray-400 text-sm mt-1">Manage your account and preferences.</p>
           </div>
 
@@ -117,7 +117,7 @@ export default function Settings() {
           <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <User className="w-5 h-5 text-[#dc2350]" />
-              <h2 className="text-lg font-semibold text-white">Profile</h2>
+              <h2 className="text-lg font-semibold text-foreground">Profile</h2>
             </div>
 
             <div className="space-y-4">
@@ -127,7 +127,7 @@ export default function Settings() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your display name"
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
                   data-testid="input-display-name"
                 />
                 <p className="text-xs text-gray-500 mt-1">This name is shown within KoaMessenger. Your email is never visible to others.</p>
@@ -158,11 +158,11 @@ export default function Settings() {
           <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Smartphone className="w-5 h-5 text-[#dc2350]" />
-              <h2 className="text-lg font-semibold text-white">Account Sync</h2>
+              <h2 className="text-lg font-semibold text-foreground">Account Sync</h2>
             </div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-white text-sm font-medium">Sync across web and desktop</p>
+                <p className="text-foreground text-sm font-medium">Sync across web and desktop</p>
                 <p className="text-gray-500 text-xs">When enabled, your platform logins are shared between the browser and the macOS app.</p>
               </div>
               <button
@@ -200,7 +200,7 @@ export default function Settings() {
           <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Monitor className="w-5 h-5 text-[#dc2350]" />
-              <h2 className="text-lg font-semibold text-white">Appearance</h2>
+              <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
             </div>
             <div className="flex gap-3">
               {([
@@ -229,12 +229,12 @@ export default function Settings() {
           <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Bell className="w-5 h-5 text-[#dc2350]" />
-              <h2 className="text-lg font-semibold text-white">Notifications</h2>
+              <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
             </div>
 
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#2a2a2a]">
               <div>
-                <p className="text-white text-sm font-medium">Global Notifications</p>
+                <p className="text-foreground text-sm font-medium">Global Notifications</p>
                 <p className="text-gray-500 text-xs">Enable or disable all notifications</p>
               </div>
               <button
@@ -275,7 +275,7 @@ export default function Settings() {
           <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Shield className="w-5 h-5 text-[#dc2350]" />
-              <h2 className="text-lg font-semibold text-white">Privacy</h2>
+              <h2 className="text-lg font-semibold text-foreground">Privacy</h2>
             </div>
             <div className="space-y-3 text-sm text-gray-400">
               <div className="flex items-start gap-3 p-3 bg-[#0a0a0a] rounded-lg">

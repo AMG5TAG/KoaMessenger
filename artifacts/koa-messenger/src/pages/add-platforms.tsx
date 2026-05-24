@@ -91,7 +91,7 @@ export default function AddPlatforms() {
       <div className="h-full flex flex-col bg-[#0a0a0a] overflow-y-auto hide-scrollbar p-6 lg:p-10">
         <div className="max-w-5xl mx-auto w-full">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-white mb-3">Add Platforms</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-3">Add Platforms</h1>
             <p className="text-gray-400 text-lg">Connect your favorite messaging apps to your unified workspace.</p>
           </div>
 
@@ -99,7 +99,7 @@ export default function AddPlatforms() {
             <div className="mb-8 bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
               <Info className="w-5 h-5 text-[#dc2350] shrink-0 mt-0.5" />
               <div className="text-sm text-gray-300 leading-relaxed">
-                <strong className="text-white">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
+                <strong className="text-foreground">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
               </div>
             </div>
           )}
@@ -110,7 +110,7 @@ export default function AddPlatforms() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for WhatsApp, Discord, Slack..."
-              className="w-full bg-[#141414] border-gray-800 text-white pl-12 h-14 rounded-xl text-lg focus-visible:ring-[#dc2350]"
+              className="w-full bg-[#141414] border-gray-800 text-foreground pl-12 h-14 rounded-xl text-lg focus-visible:ring-[#dc2350]"
             />
           </div>
 
@@ -131,7 +131,7 @@ export default function AddPlatforms() {
 
                 return (
                   <div key={category}>
-                    <h2 className="text-xl font-semibold text-white mb-6 capitalize">{category}</h2>
+                    <h2 className="text-xl font-semibold text-foreground mb-6 capitalize">{category}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {categoryPlatforms.map(platform => {
                         const entries = getActiveEntries(platform.id);
@@ -151,7 +151,7 @@ export default function AddPlatforms() {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-white text-lg truncate">{platform.name}</h3>
+                                <h3 className="font-semibold text-foreground text-lg truncate">{platform.name}</h3>
                                 {platform.embedsInIframe === false && (
                                   <span
                                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium shrink-0"
@@ -204,7 +204,7 @@ export default function AddPlatforms() {
                                 <Button
                                   size="icon"
                                   variant="default"
-                                  className="bg-[#1f1f1f] text-white hover:bg-[#dc2350] rounded-xl transition-all"
+                                  className="bg-[#1f1f1f] text-foreground hover:bg-[#dc2350] hover:text-white rounded-xl transition-all"
                                   onClick={() => handleAdd(platform.id)}
                                   disabled={isMutating}
                                 >
@@ -226,7 +226,7 @@ export default function AddPlatforms() {
 
       {/* Add another account dialog */}
       <Dialog open={!!addingAccount} onOpenChange={(open) => !open && setAddingAccount(null)}>
-        <DialogContent className="bg-[#141414] border-gray-800 text-white sm:max-w-sm">
+        <DialogContent className="bg-[#141414] border-gray-800 text-foreground sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Add another {addingAccount?.name} account</DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -240,7 +240,7 @@ export default function AddPlatforms() {
               value={accountLabel}
               onChange={(e) => setAccountLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && confirmAddAccount()}
-              className="bg-[#0a0a0a] border-gray-700 text-white focus-visible:ring-[#dc2350]"
+              className="bg-[#0a0a0a] border-gray-700 text-foreground focus-visible:ring-[#dc2350]"
             />
           </div>
           <DialogFooter>

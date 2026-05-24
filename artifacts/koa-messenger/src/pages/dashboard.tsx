@@ -217,7 +217,7 @@ function WelcomeScreen() {
   return (
     <div className="h-full w-full flex flex-col items-center justify-center text-center px-4">
       <img src={newAppIconPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90 rounded-3xl" />
-      <h2 className="text-2xl font-bold text-white mb-2">Welcome to KoaMessenger</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to KoaMessenger</h2>
       <p className="text-gray-400 max-w-md mb-8">
         Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.
       </p>
@@ -406,7 +406,7 @@ function PlatformPane({
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
               <ShieldAlert className="w-8 h-8 text-amber-400" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">{platform.name} stopped responding</h3>
+            <h3 className="text-lg font-bold text-foreground mb-2">{platform.name} stopped responding</h3>
             <p className="text-gray-400 text-sm mb-5">
               The page crashed ({crashed}). Your login is still saved — just reload to continue.
             </p>
@@ -466,7 +466,7 @@ function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
             {platform.name[0]}
           </div>
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">{platform.name} is native-only</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">{platform.name} is native-only</h2>
         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
           {platform.iframeNotes ??
             `${platform.name} does not offer a web or desktop client. It is only available on Apple devices (iPhone, iPad, and Mac) through the native Messages app.`}
@@ -491,7 +491,7 @@ function BlockedFallback({ platform }: { platform: PlatformMeta }) {
             {platform.name[0]}
           </div>
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">{platform.name} can't be embedded</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">{platform.name} can't be embedded</h2>
         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
           {platform.iframeNotes ??
             `${platform.name} prevents embedding inside other sites for security. You can still launch it in a new browser tab — your login stays with ${platform.name}, never with us.`}
