@@ -475,35 +475,20 @@ function PlatformPane({
         </div>
       )}
       {desktop ? (
-        // CRITICAL Electron <webview> sizing rules — read before touching:
-        // 1. `display: flex` on the webview tag itself causes the embedded
-        //    BrowserView to render as 0×0 (solid black). Use `inline-flex`
-        //    or rely on absolute positioning.
-        // 2. `width: 100%; height: 100%` with `display: inline-flex` ALSO
-        //    misbehaves when the chain of parents uses absolute positioning
-        //    + flex (which ours does), because inline-flex's preferred size
-        //    is based on contents, not container.
-        // 3. The bullet-proof pattern that every production Electron app
-        //    settles on is: explicit `position: absolute; inset: 0`. This
-        //    sidesteps every flex/sizing edge case and forces the webview
-        //    to fill its `position: relative` parent.
+        // RESTORED to the exact known-working configuration from commit e4f89a8.
+        // DO NOT change `display: flex`, the `key`, the `useragent`, or the
+        // `style` props without first confirming the app still works end-to-end
+        // on a packaged macOS build. Every previous attempt to "improve" this
+        // markup caused a regression where the webview rendered pitch black.
+        // The black area is NOT a CSS issue — it's the parent's #0a0a0a
+        // showing through when something stops the webview from attaching.
         <webview
-          key={reloadKey}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
           partition={`persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`}
           allowpopups={"true" as unknown as boolean}
           useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: "100%",
-            display: "inline-flex",
-          }}
+          style={{ width: "100%", height: "100%", display: "flex" }}
         />
       ) : (
         <iframe

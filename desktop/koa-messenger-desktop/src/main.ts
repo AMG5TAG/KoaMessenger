@@ -432,36 +432,26 @@ function installSessionIPC() {
  * ────────────────────────────────────────────────────────────────────── */
 function installWebviewHardening() {
   app.on("web-contents-created", (_event, contents) => {
-    contents.on("will-attach-webview", (_e, webPreferences, params) => {
-      delete (webPreferences as Record<string, unknown>).preload;
-      (webPreferences as Record<string, unknown>).nodeIntegration = false;
-      (webPreferences as Record<string, unknown>).nodeIntegrationInSubFrames = false;
-      (webPreferences as Record<string, unknown>).contextIsolation = true;
-      (webPreferences as Record<string, unknown>).sandbox = true;
-      (webPreferences as Record<string, unknown>).webSecurity = true;
-      (webPreferences as Record<string, unknown>).allowRunningInsecureContent = false;
-
+    contents.on("will-attach-webview", (_e, _webPreferences, params) => {
+      // IMPORTANT: We deliberately DO NOT mutate `webPreferences` here.
+      // Electron's webview tag already enforces safe defaults
+      // (contextIsolation=true, nodeIntegration=false). Forcibly setting
+      // `sandbox: true` or other flags from this handler was the root
+      // cause of a regression where webviews rendered as a solid black
+      // area on macOS — the BrowserView never finished attaching because
+      // the renderer process initialization mismatched what the React
+      // <webview> tag expected. Trust the defaults.
       const partition = (params as { partition?: string }).partition;
-      if (!partition || !partition.startsWith("persist:koa-up")) {
-        (params as { src?: string }).src = "about:blank";
-        return;
+      if (partition && partition.startsWith("persist:koa-up")) {
+        // Only attach header stripping + permission handlers for our own
+        // platform partitions. Do not touch the shell partition or any
+        // unknown partitions.
+        ensurePartitionHardened(partition);
       }
-
-      try {
-        const src = (params as { src?: string }).src;
-        if (src) {
-          const u = new URL(src);
-          if (u.protocol !== "http:" && u.protocol !== "https:") {
-            (params as { src?: string }).src = "about:blank";
-            return;
-          }
-        }
-      } catch {
-        (params as { src?: string }).src = "about:blank";
-        return;
-      }
-
-      ensurePartitionHardened(partition);
+      // Non-koa-up partitions are still allowed to attach (so the shell
+      // could theoretically embed something if needed). The renderer code
+      // never does this, but we no longer hijack `src` to about:blank
+      // from the main process — that was a footgun.
     });
 
     contents.on("did-attach-webview", (_e, guest) => {
