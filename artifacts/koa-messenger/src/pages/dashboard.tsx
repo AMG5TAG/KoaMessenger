@@ -464,6 +464,13 @@ function PlatformPane({
         </div>
       )}
       {desktop ? (
+        // IMPORTANT: <webview> in Electron must use `display: inline-flex`
+        // (NOT `display: flex`). Using `display: flex` on the webview tag
+        // itself causes a known Electron/Chromium bug where the embedded
+        // BrowserView renders as 0×0 — the user sees a SOLID BLACK area
+        // (the parent's background) instead of the loaded page. This was
+        // the root cause of the "black screen when I click a platform" bug.
+        // See: https://www.electronjs.org/docs/latest/api/webview-tag#css-styling-notes
         <webview
           key={reloadKey}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
@@ -471,7 +478,7 @@ function PlatformPane({
           partition={`persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`}
           allowpopups={"true" as unknown as boolean}
           useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-          style={{ width: "100%", height: "100%", display: "flex" }}
+          style={{ width: "100%", height: "100%", display: "inline-flex" }}
         />
       ) : (
         <iframe
