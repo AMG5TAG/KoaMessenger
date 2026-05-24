@@ -162,9 +162,6 @@ export default function Home() {
           <img src={logoWordsPng} alt="KoaMessenger" className="h-10 w-auto" />
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/sign-in" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-            Sign In
-          </Link>
           <Link href="/sign-up">
             <Button className="bg-[#dc2350] hover:bg-[#e34f73] text-white rounded-full px-6 transition-all duration-300 shadow-[0_0_15px_rgba(220,35,80,0.3)] hover:shadow-[0_0_25px_rgba(220,35,80,0.5)]">
               Get Started
@@ -177,7 +174,7 @@ export default function Home() {
       <section className="pt-32 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1a0a10] border border-[#dc2350]/30 text-[#dc2350] text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <Shield className="w-4 h-4" />
-          <span>Privacy-first messaging hub</span>
+          <span>Privacy-first multi-platform messaging hub</span>
         </div>
 
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
@@ -195,15 +192,17 @@ export default function Home() {
               {user ? "Open Dashboard" : "Start Messaging"} <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>
-          <Link href={user ? "/add-platforms" : "/sign-in"}>
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-full px-8 h-14 text-lg border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350] w-full sm:w-auto"
-            >
-              {user ? "Add Platforms" : "Sign In"}
-            </Button>
-          </Link>
+          {user && (
+            <Link href="/add-platforms">
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-full px-8 h-14 text-lg border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350] w-full sm:w-auto"
+              >
+                Add Platforms
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Screenshot Gallery */}
