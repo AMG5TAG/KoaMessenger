@@ -10,6 +10,8 @@ declare global {
       setBadgeCount?: (count: number) => void;
       /** Subscribe to notification-click events from the OS */
       onNotificationClick?: (callback: (upId: number) => void) => (() => void) | void;
+      /** Clear cookies/localStorage/cache for a single platform partition ("log out") */
+      clearPartition?: (partition: string) => Promise<{ ok: boolean; error?: string }>;
     };
   }
 

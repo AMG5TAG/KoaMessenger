@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearch, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms, useGetMe } from "@workspace/api-client-react";
-import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
+import { Loader2, ExternalLink, X, Plus, ShieldAlert, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
 import {
@@ -207,6 +207,7 @@ export default function Dashboard() {
                           closeTab(upId, tab.id);
                         }}
                         className="w-5 h-5 rounded flex items-center justify-center hover:bg-gray-700 opacity-60 hover:opacity-100"
+                        title="Close this tab"
                       >
                         <X className="w-3 h-3" />
                       </span>
@@ -221,11 +222,18 @@ export default function Dashboard() {
                   <Plus className="w-4 h-4" />
                 </button>
                 <div className="flex-1" />
+                <SignOutTabButton
+                  upId={upId}
+                  tabId={state.activeTabId}
+                  syncOn={syncOn}
+                  platformName={up.displayName ?? up.platform.name}
+                />
                 <Button
                   variant="ghost"
                   size="sm"
                   className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
                   onClick={() => window.open(up.platform.url, "_blank", "noopener,noreferrer")}
+                  title="Open in your browser"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   New window
@@ -307,9 +315,18 @@ function PlatformPane({
   const isNativeOnly = platform.url.includes("apple.com/messages");
   const [loading, setLoading] = useState(!blocked && !isNativeOnly);
   const [timedOut, setTimedOut] = useState(false);
+  const [crashed, setCrashed] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webviewRef = useRef<HTMLElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const reloadPane = useCallback(() => {
+    setCrashed(null);
+    setLoading(true);
+    setTimedOut(false);
+    setReloadKey((k) => k + 1);
+  }, []);
 
   // Attach webview event listeners once, when the element is available
   const attachWebviewListeners = useCallback(
@@ -345,15 +362,38 @@ function PlatformPane({
         const count = parseUnreadFromTitle(title);
         setCount(upId, tabId, count, notifyMeta);
       };
+      // When the webview's render process crashes (the #1 cause of a black
+      // webview area on macOS — happens with heavy SPAs, OOM, GPU issues),
+      // surface a recovery UI instead of leaving the user staring at a void.
+      const onRenderGone = (e: Event) => {
+        const reason =
+          (e as unknown as { reason?: string; details?: { reason?: string } })
+            .details?.reason ??
+          (e as unknown as { reason?: string }).reason ??
+          "crashed";
+        setLoading(false);
+        setCrashed(reason);
+      };
+      const onUnresponsive = () => {
+        // Don't show a full error, but make sure the spinner clears so the user
+        // sees the unresponsive page (might still recover).
+        setLoading(false);
+      };
 
       el.addEventListener("did-finish-load", onFinish);
       el.addEventListener("did-fail-load", onFail as EventListener);
       el.addEventListener("page-title-updated", onTitleUpdate as EventListener);
+      el.addEventListener("render-process-gone", onRenderGone as EventListener);
+      el.addEventListener("crashed", onRenderGone as EventListener);
+      el.addEventListener("unresponsive", onUnresponsive);
 
       return () => {
         el.removeEventListener("did-finish-load", onFinish);
         el.removeEventListener("did-fail-load", onFail as EventListener);
         el.removeEventListener("page-title-updated", onTitleUpdate as EventListener);
+        el.removeEventListener("render-process-gone", onRenderGone as EventListener);
+        el.removeEventListener("crashed", onRenderGone as EventListener);
+        el.removeEventListener("unresponsive", onUnresponsive);
       };
     },
     [upId, tabId, setCount],
@@ -406,8 +446,26 @@ function PlatformPane({
           Taking a while — the site may be slow or have limited connectivity.
         </div>
       )}
+      {crashed && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0a0a0a] p-6">
+          <div className="max-w-md text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-amber-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">{platform.name} stopped responding</h3>
+            <p className="text-gray-400 text-sm mb-5">
+              The page crashed ({crashed}). Your login is still saved — just reload to continue.
+            </p>
+            <Button onClick={reloadPane} className="bg-[#dc2350] hover:bg-[#e34f73] text-white">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reload {platform.name}
+            </Button>
+          </div>
+        </div>
+      )}
       {desktop ? (
         <webview
+          key={reloadKey}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
           partition={`persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`}
@@ -432,6 +490,67 @@ function PlatformPane({
         />
       )}
     </div>
+  );
+}
+
+function SignOutTabButton({
+  upId,
+  tabId,
+  syncOn,
+  platformName,
+}: {
+  upId: number;
+  tabId: string;
+  syncOn: boolean;
+  platformName: string;
+}) {
+  const desktop = isDesktop();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+
+  if (!desktop) return null;
+
+  const handleSignOut = async () => {
+    const confirmed = window.confirm(
+      `Sign out of ${platformName} on this tab?\n\nThis will clear cookies and stored data for this session. Your account itself is not affected.`,
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    try {
+      const partition = `persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`;
+      const result = await window.koaDesktop?.clearPartition?.(partition);
+      if (result?.ok) {
+        toast({
+          title: `Signed out of ${platformName}`,
+          description: "Reload the page to log in again.",
+          duration: 5000,
+        });
+        // Force the webview to fully reload with cleared state
+        window.location.reload();
+      } else {
+        toast({
+          title: "Couldn't sign out",
+          description: result?.error ?? "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
+      onClick={handleSignOut}
+      disabled={busy}
+      title={`Sign out / clear stored data for this ${platformName} tab`}
+    >
+      <LogOut className="w-4 h-4 mr-2" />
+      Sign out
+    </Button>
   );
 }
 

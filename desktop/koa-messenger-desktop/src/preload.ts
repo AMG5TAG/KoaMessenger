@@ -29,4 +29,13 @@ contextBridge.exposeInMainWorld("koaDesktop", {
     ipcRenderer.on("koa-notification-clicked", handler);
     return () => ipcRenderer.removeListener("koa-notification-clicked", handler);
   },
+
+  /**
+   * Clear all stored data (cookies, localStorage, cache, service workers) for a
+   * single platform partition — i.e. "log out of this account / close this
+   * connection". Returns { ok: true } on success.
+   */
+  clearPartition: (partition: string): Promise<{ ok: boolean; error?: string }> => {
+    return ipcRenderer.invoke("koa-clear-partition", partition);
+  },
 });

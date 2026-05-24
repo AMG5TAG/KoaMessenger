@@ -147,6 +147,41 @@ function createMainWindow() {
     win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   });
 
+  // Recover from main renderer crashes (the OTHER source of a full black window
+  // on macOS — when the shell React app's render process dies, the user is left
+  // staring at the #0a0a0a background with no UI). Auto-reload once; if it
+  // crashes again, show the error page so the user can manually retry.
+  let mainCrashRecoveryAttempts = 0;
+  win.webContents.on("render-process-gone", (_e, details) => {
+    if (details.reason === "clean-exit") return;
+    if (win.isDestroyed()) return;
+    mainCrashRecoveryAttempts += 1;
+    if (mainCrashRecoveryAttempts <= 1) {
+      win.reload();
+    } else {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>KoaMessenger</title>
+<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+background:#0a0a0a;color:#fff;height:100vh;display:flex;align-items:center;justify-content:center}
+.card{max-width:480px;text-align:center;padding:32px}
+h1{color:#dc2350;margin:0 0 12px;font-size:22px}
+p{color:#9ca3af;line-height:1.5;margin:8px 0}
+button{background:#dc2350;color:#fff;border:none;padding:10px 20px;border-radius:8px;
+font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}
+button:hover{background:#e34f73}</style></head><body><div class="card">
+<h1>KoaMessenger stopped responding</h1>
+<p>The app crashed (${details.reason}). Click below to reload — your accounts are still saved.</p>
+<button onclick="location.href='${IS_DEV ? DEV_URL : PROD_URL}'">Reload</button>
+</div></body></html>`;
+      win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    }
+  });
+
+  win.webContents.on("did-finish-load", () => {
+    // Reset the counter on every successful load so a future, unrelated crash
+    // also gets one auto-recovery attempt.
+    mainCrashRecoveryAttempts = 0;
+  });
+
   win.loadURL(IS_DEV ? DEV_URL : PROD_URL);
   if (IS_DEV) win.webContents.openDevTools({ mode: "detach" });
 
@@ -358,6 +393,41 @@ function installNotificationIPC() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Partition data clearing IPC
+ * Lets the renderer wipe cookies/localStorage/cache for a single platform
+ * tab (i.e. "log out of this account"), without touching others.
+ * ────────────────────────────────────────────────────────────────────── */
+function installSessionIPC() {
+  ipcMain.handle("koa-clear-partition", async (_event, partition: string) => {
+    // Hard guard: only allow clearing per-platform partitions, never the shell.
+    if (typeof partition !== "string" || !partition.startsWith("persist:koa-up")) {
+      return { ok: false, error: "invalid-partition" };
+    }
+    try {
+      const ses = session.fromPartition(partition);
+      await ses.clearStorageData({
+        // NOTE: "indexdb" (sic) is Electron's actual API key — it's a typo
+        // baked into Electron's clearStorageData type. Using it clears IndexedDB.
+        storages: [
+          "cookies",
+          "localstorage",
+          "indexdb",
+          "shadercache",
+          "serviceworkers",
+          "cachestorage",
+          "filesystem",
+        ],
+      });
+      await ses.clearCache();
+      await ses.clearAuthCache();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message };
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Webview hardening
  * ────────────────────────────────────────────────────────────────────── */
 function installWebviewHardening() {
@@ -438,10 +508,21 @@ app.on("second-instance", () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   buildAppMenu();
   installWebviewHardening();
   installNotificationIPC();
+  installSessionIPC();
+
+  // Clear the SHELL session's HTTP cache on every launch so the user always gets
+  // the latest deployed web app JS. Cookies/localStorage are NOT cleared — only
+  // the HTTP cache (which is what gets stuck on stale JS bundles after a deploy).
+  try {
+    await session.fromPartition("persist:koa-shell").clearCache();
+  } catch {
+    // non-fatal
+  }
+
   mainWindow = createMainWindow();
 
   app.on("activate", () => {
