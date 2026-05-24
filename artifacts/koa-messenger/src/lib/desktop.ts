@@ -4,6 +4,12 @@ declare global {
       isElectron: boolean;
       platform: string;
       version: string;
+      /** Send a native OS notification (macOS Notification Center, etc.) */
+      sendNotification?: (title: string, body: string, label?: string, upId?: number) => void;
+      /** Update the Dock / taskbar badge count */
+      setBadgeCount?: (count: number) => void;
+      /** Subscribe to notification-click events from the OS */
+      onNotificationClick?: (callback: (upId: number) => void) => (() => void) | void;
     };
   }
 

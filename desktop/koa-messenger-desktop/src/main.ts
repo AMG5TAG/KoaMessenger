@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, shell } from "electron";
+import { app, BrowserWindow, session, shell, Notification, ipcMain } from "electron";
 import path from "node:path";
 
 const DEV_URL = process.env.KOA_DEV_URL ?? "http://localhost:18802/";
@@ -7,11 +7,9 @@ const IS_DEV = !app.isPackaged;
 
 const ALLOWED_OPEN_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
-/**
- * Strip iframe/CSP framing headers ONLY for the platform-webview partitions
- * (`persist:plat-*`). We deliberately do NOT touch the default session or the
- * shell partition — those keep their full security headers.
- */
+/* ──────────────────────────────────────────────────────────────────────
+ * Header stripping for webviews ───────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
 function attachHeaderStripping(ses: Electron.Session) {
   ses.webRequest.onHeadersReceived((details, callback) => {
     const headers: Record<string, string[] | string> = { ...details.responseHeaders };
@@ -36,20 +34,12 @@ function attachHeaderStripping(ses: Electron.Session) {
   });
 }
 
-/**
- * Permissions we allow inside platform webviews.
- * Notifications are required for message badge counts and macOS banners.
- * Media permissions cover audio/video calls within platforms.
- */
+/* ──────────────────────────────────────────────────────────────────────
+ * Permissions ──────────────────────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
 const ALLOWED_PERMISSIONS = new Set([
-  "notifications",
-  "media",
-  "mediaKeySystem",
-  "geolocation",
-  "pointerLock",
-  "fullscreen",
-  "openExternal",
-  "clipboard-read",
+  "notifications", "media", "mediaKeySystem", "geolocation",
+  "pointerLock", "fullscreen", "openExternal", "clipboard-read",
   "clipboard-sanitized-write",
 ]);
 
@@ -61,18 +51,17 @@ function ensurePartitionHardened(partition: string | undefined) {
   hardenedSessions.add(ses);
   attachHeaderStripping(ses);
 
-  // Grant notification and media permissions so platforms can send macOS banners
-  // and make audio/video calls without an extra browser-level prompt being denied.
   ses.setPermissionRequestHandler((_webContents, permission, callback) => {
     callback(ALLOWED_PERMISSIONS.has(permission));
   });
-
-  // setPermissionCheckHandler answers synchronous checks (e.g. Notification.permission)
   ses.setPermissionCheckHandler((_webContents, permission) => {
     return ALLOWED_PERMISSIONS.has(permission);
   });
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Main window ──────────────────────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
 function createMainWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -92,13 +81,10 @@ function createMainWindow() {
     },
   });
 
-  // Default-deny popups. Only http(s)/mailto/tel open in the OS browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const u = new URL(url);
-      if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
-        shell.openExternal(url);
-      }
+      if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) shell.openExternal(url);
     } catch {
       // ignore malformed URLs
     }
@@ -107,20 +93,72 @@ function createMainWindow() {
 
   win.loadURL(IS_DEV ? DEV_URL : PROD_URL);
   if (IS_DEV) win.webContents.openDevTools({ mode: "detach" });
+
+  return win;
 }
 
-/**
- * Lock down every <webview> the renderer attaches:
- * - force secure guest preferences (no node integration, no preload override,
- *   contextIsolation/sandbox on, no disable-web-security)
- * - reject non-platform partitions
- * - block navigation to non-http(s) URLs
- * - install header stripping lazily, only on platform partitions
- */
+/* ──────────────────────────────────────────────────────────────────────
+ * Native notifications & badge IPC ───────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** Store the latest notification per upId so we can route click events. */
+const notificationUpIdMap = new Map<string, number>();
+
+function installNotificationIPC(mainWindow: BrowserWindow) {
+  // Renderer asks us to show a native notification
+  ipcMain.on("koa-notification", (_event, payload: {
+    title: string;
+    body: string;
+    label?: string;
+    upId?: number;
+  }) => {
+    if (!Notification.isSupported()) return;
+
+    const n = new Notification({
+      title: payload.title,
+      body: payload.body,
+      silent: false,
+      hasReply: false,
+      // macOS: show in Notification Center even when app is focused
+      // (the badge/text inside the app already shows the count)
+    });
+
+    const idKey = payload.label ?? payload.title;
+    if (payload.upId !== undefined) {
+      notificationUpIdMap.set(idKey, payload.upId);
+    }
+
+    n.on("click", () => {
+      // Bring the app to front and tell the renderer to navigate
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      const upId = notificationUpIdMap.get(idKey);
+      if (upId !== undefined) {
+        mainWindow.webContents.send("koa-notification-clicked", { upId });
+      }
+    });
+
+    n.show();
+  });
+
+  // Renderer updates the Dock / taskbar badge
+  ipcMain.on("koa-badge", (_event, count: number) => {
+    if (process.platform === "darwin") {
+      app.dock?.setBadge(count > 0 ? String(count) : "");
+    }
+    // Windows taskbar badge (via electron API) — setOverlayIcon or overlayBadge
+    if (process.platform === "win32" && mainWindow) {
+      mainWindow.setOverlayIcon(null, "");
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Webview hardening ──────────────────────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
 function installWebviewHardening() {
   app.on("web-contents-created", (_event, contents) => {
     contents.on("will-attach-webview", (_e, webPreferences, params) => {
-      // Force safe guest webPreferences
       delete (webPreferences as Record<string, unknown>).preload;
       (webPreferences as Record<string, unknown>).nodeIntegration = false;
       (webPreferences as Record<string, unknown>).nodeIntegrationInSubFrames = false;
@@ -129,14 +167,12 @@ function installWebviewHardening() {
       (webPreferences as Record<string, unknown>).webSecurity = true;
       (webPreferences as Record<string, unknown>).allowRunningInsecureContent = false;
 
-      // Only allow our platform partitions
       const partition = (params as { partition?: string }).partition;
       if (!partition || !partition.startsWith("persist:plat-")) {
         (params as { src?: string }).src = "about:blank";
         return;
       }
 
-      // Block initial src on non-http(s) protocols
       try {
         const src = (params as { src?: string }).src;
         if (src) {
@@ -154,7 +190,6 @@ function installWebviewHardening() {
       ensurePartitionHardened(partition);
     });
 
-    // Intercept guest webview navigation attempts as a defense-in-depth.
     contents.on("did-attach-webview", (_e, guest) => {
       guest.on("will-navigate", (ev, url) => {
         try {
@@ -177,11 +212,20 @@ function installWebviewHardening() {
   });
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Lifecycle ──────────────────────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
+
 app.whenReady().then(() => {
   installWebviewHardening();
-  createMainWindow();
+  const mainWindow = createMainWindow();
+  installNotificationIPC(mainWindow);
+
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const win = createMainWindow();
+      installNotificationIPC(win);
+    }
   });
 });
 

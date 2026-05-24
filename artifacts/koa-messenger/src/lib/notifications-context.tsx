@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useReducer } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useReducer,
+} from "react";
+import { isDesktop } from "./desktop";
 
 type TabCounts = Record<string, number>; // key: `${upId}-${tabId}`
 
@@ -7,9 +16,14 @@ function reducer(state: TabCounts, action: { key: string; count: number }): TabC
   return { ...state, [action.key]: action.count };
 }
 
+interface NotifyMeta {
+  name: string;
+  tabLabel?: string;
+}
+
 interface NotificationContextValue {
   counts: Record<number, number>; // upId -> total across all tabs
-  setCount: (upId: number, tabId: string, count: number) => void;
+  setCount: (upId: number, tabId: string, count: number, meta?: NotifyMeta) => void;
   clearCount: (upId: number) => void;
 }
 
@@ -19,16 +33,56 @@ const NotificationContext = createContext<NotificationContextValue>({
   clearCount: () => {},
 });
 
+/** Last count we notified for per (upId, tabId) to avoid spamming. */
+const lastNotified = new Map<string, number>();
+
+function maybeSendNativeNotification(
+  upId: number,
+  tabId: string,
+  count: number,
+  meta?: NotifyMeta,
+) {
+  const key = `${upId}-${tabId}`;
+  const previous = lastNotified.get(key) ?? 0;
+  lastNotified.set(key, count);
+
+  if (!isDesktop() || count <= 0 || count <= previous) return;
+
+  const desktop = window.koaDesktop;
+  if (!desktop?.sendNotification) return;
+
+  const platformName = meta?.name ?? "KoaMessenger";
+  const tabLabel = meta?.tabLabel ? ` (${meta.tabLabel})` : "";
+  const diff = count - previous;
+
+  desktop.sendNotification(
+    `${platformName}${tabLabel}`,
+    diff === 1
+      ? `1 new message`
+      : `${diff} new messages (${count} total)`,
+    `${platformName}${tabLabel}`,
+    upId,
+  );
+}
+
+function updateDockBadge(total: number) {
+  if (!isDesktop()) return;
+  window.koaDesktop?.setBadgeCount?.(total);
+}
+
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [tabCounts, dispatch] = useReducer(reducer, {});
 
-  const setCount = useCallback((upId: number, tabId: string, count: number) => {
-    dispatch({ key: `${upId}-${tabId}`, count });
-  }, []);
+  const setCount = useCallback(
+    (upId: number, tabId: string, count: number, meta?: NotifyMeta) => {
+      const key = `${upId}-${tabId}`;
+      dispatch({ key, count });
+      maybeSendNativeNotification(upId, tabId, count, meta);
+    },
+    [],
+  );
 
   const clearCount = useCallback((upId: number) => {
-    // Set all tabs for this upId to 0 by dispatching a wildcard reset isn't possible
-    // with the reducer as-is; instead we dispatch 0 for every key matching upId.
     Object.keys(tabCounts).forEach((key) => {
       if (key.startsWith(`${upId}-`)) dispatch({ key, count: 0 });
     });
@@ -43,6 +97,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return result;
   }, [tabCounts]);
 
+  const totalUnread = useMemo(
+    () => Object.values(counts).reduce((sum, c) => sum + c, 0),
+    [counts],
+  );
+
+  useEffect(() => {
+    updateDockBadge(totalUnread);
+  }, [totalUnread]);
+
   return (
     <NotificationContext.Provider value={{ counts, setCount, clearCount }}>
       {children}
@@ -54,26 +117,41 @@ export function useNotifications() {
   return useContext(NotificationContext);
 }
 
+/** Hook to listen for native notification clicks (desktop only). */
+export function useDesktopNotificationClick(callback: (upId: number) => void) {
+  const cbRef = useRef(callback);
+  cbRef.current = callback;
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+    const unsub = window.koaDesktop?.onNotificationClick?.((upId: number) => {
+      cbRef.current(upId);
+    });
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
+}
+
 export function parseUnreadFromTitle(title: string): number {
   if (!title) return 0;
-  // Ordered from most specific to least to avoid false matches.
   const patterns = [
-    /^\((\d+)\)/,                   // (3) App name  — WhatsApp, Messenger, Gmail, Discord, Telegram
-    /^\[(\d+)\]/,                   // [3] App name
-    /\((\d+)\)\s*[-–|]/,           // (3) - Gmail, (3) | Slack
-    /\|\s*(\d+)\s*new/i,           // | 3 new
-    /·\s*(\d+)\s*(new|unread)?/i,  // · 3 new  — Telegram Web
-    /\b(\d+)\s+unread/i,           // 3 unread
-    /\b(\d+)\s+new\s+message/i,    // 3 new messages
-    /\((\d+)\)\s*$/,               // App name (3)  — at end
-    /\[(\d+)\]\s*$/,               // App name [3]  — at end
-    /\s(\d+)\s*$/,                 // App name 3    — plain number at very end (low confidence, last resort)
+    /^\((\d+)\)/,
+    /^\[(\d+)\]/,
+    /\((\d+)\)\s*[-–|]/,
+    /\|\s*(\d+)\s*new/i,
+    /·\s*(\d+)\s*(new|unread)?/i,
+    /\b(\d+)\s+unread/i,
+    /\b(\d+)\s+new\s+message/i,
+    /\((\d+)\)\s*$/,
+    /\[(\d+)\]\s*$/,
+    /\s(\d+)\s*$/,
   ];
   for (const pat of patterns) {
     const m = title.match(pat);
     if (m) {
       const n = parseInt(m[1]);
-      if (n > 0 && n < 10000) return n; // sanity-check: ignore wild numbers
+      if (n > 0 && n < 10000) return n;
     }
   }
   return 0;

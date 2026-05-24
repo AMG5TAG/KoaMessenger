@@ -5,7 +5,11 @@ import { useListUserPlatforms } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, X, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
-import { useNotifications, parseUnreadFromTitle } from "@/lib/notifications-context";
+import {
+  useNotifications,
+  parseUnreadFromTitle,
+  useDesktopNotificationClick,
+} from "@/lib/notifications-context";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
@@ -54,6 +58,9 @@ export default function Dashboard() {
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
+
+  // Navigate to platform when user clicks a native macOS notification banner
+  useDesktopNotificationClick((upId) => setLocation(`/dashboard?up=${upId}`));
 
   // ── Sticky visited platforms: once loaded, never unmount ──────────────────
   const [visitedUpIds, setVisitedUpIds] = useState<number[]>([]);
@@ -226,7 +233,7 @@ export default function Dashboard() {
 
               {/* Platform panes — one per tab, all kept mounted via visibility (display:none would detach webviews) */}
               <div className="flex-1 relative">
-                {state.tabs.map((tab) => (
+                {state.tabs.map((tab, idx) => (
                   <div
                     key={tab.id}
                     className="absolute inset-0"
@@ -240,6 +247,7 @@ export default function Dashboard() {
                       platform={up.platform}
                       upId={upId}
                       tabId={tab.id}
+                      tabLabel={`Tab ${idx + 1}`}
                       active={isActive && tab.id === state.activeTabId}
                     />
                   </div>
@@ -279,15 +287,18 @@ function PlatformPane({
   platform,
   upId,
   tabId,
+  tabLabel,
   active,
 }: {
   platform: PlatformMeta;
   upId: number;
   tabId: string;
+  tabLabel?: string;
   active: boolean;
 }) {
   const desktop = isDesktop();
   const { setCount, clearCount } = useNotifications();
+  const notifyMeta = { name: platform.name, tabLabel };
   const blocked = !desktop && platform.embedsInIframe === false;
   const isNativeOnly = platform.url.includes("apple.com/messages");
   const [loading, setLoading] = useState(!blocked && !isNativeOnly);
@@ -307,7 +318,7 @@ function PlatformPane({
           // executeJavaScript gives us the live title even without a title-changed event
           const title: string = await wv.executeJavaScript("document.title");
           const count = parseUnreadFromTitle(title);
-          setCount(upId, tabId, count);
+          setCount(upId, tabId, count, notifyMeta);
         } catch {
           // webview not ready yet — ignore
         }
@@ -328,7 +339,7 @@ function PlatformPane({
       const onTitleUpdate = (e: Event) => {
         const title = (e as unknown as { title: string }).title ?? "";
         const count = parseUnreadFromTitle(title);
-        setCount(upId, tabId, count);
+        setCount(upId, tabId, count, notifyMeta);
       };
 
       el.addEventListener("did-finish-load", onFinish);
