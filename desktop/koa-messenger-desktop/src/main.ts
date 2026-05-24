@@ -430,8 +430,30 @@ function installSessionIPC() {
 /* ──────────────────────────────────────────────────────────────────────
  * Webview hardening
  * ────────────────────────────────────────────────────────────────────── */
+// Build marker — if you don't see this in the DevTools console on app launch,
+// you are running an OLD packaged .app and need to re-run `pnpm package`.
+const KOA_MAIN_BUILD_TAG = "KOA_MAIN_BUILD_2026_05_24_v3_diagnostics";
+
+function diag(msg: string, data?: Record<string, unknown>) {
+  const line = `[KOA-DIAG] ${msg}${data ? " " + JSON.stringify(data) : ""}`;
+  // Print to main-process stdout (visible in terminal / Console.app)
+  console.log(line);
+  // Also forward to the shell window's DevTools console so the user can
+  // see it in the same place they ran the inspector snippet.
+  const win = mainWindow;
+  if (win && !win.isDestroyed()) {
+    win.webContents
+      .executeJavaScript(`console.log(${JSON.stringify(line)})`, true)
+      .catch(() => {
+        /* renderer may not be ready yet, ignore */
+      });
+  }
+}
+
 function installWebviewHardening() {
+  diag(`installWebviewHardening() registered — ${KOA_MAIN_BUILD_TAG}`);
   app.on("web-contents-created", (_event, contents) => {
+    diag("web-contents-created", { type: contents.getType?.() ?? "unknown" });
     contents.on("will-attach-webview", (_e, _webPreferences, params) => {
       // IMPORTANT: We deliberately DO NOT mutate `webPreferences` here.
       // Electron's webview tag already enforces safe defaults
@@ -441,7 +463,9 @@ function installWebviewHardening() {
       // area on macOS — the BrowserView never finished attaching because
       // the renderer process initialization mismatched what the React
       // <webview> tag expected. Trust the defaults.
-      const partition = (params as { partition?: string }).partition;
+      const p = params as { partition?: string; src?: string };
+      diag("will-attach-webview", { partition: p.partition, src: p.src });
+      const partition = p.partition;
       if (partition && partition.startsWith("persist:koa-up")) {
         // Only attach header stripping + permission handlers for our own
         // platform partitions. Do not touch the shell partition or any
@@ -455,11 +479,28 @@ function installWebviewHardening() {
     });
 
     contents.on("did-attach-webview", (_e, guest) => {
+      diag("did-attach-webview", {
+        guestUrl: (() => {
+          try {
+            return guest.getURL();
+          } catch {
+            return "?";
+          }
+        })(),
+      });
+      guest.on("did-start-loading", () => diag("guest did-start-loading", { url: guest.getURL() }));
+      guest.on("did-stop-loading", () => diag("guest did-stop-loading", { url: guest.getURL() }));
+      guest.on("did-navigate", (_ev, url) => diag("guest did-navigate", { url }));
+      guest.on("did-fail-load", (_ev, code, desc, url, isMain) =>
+        diag("guest did-fail-load", { code, desc, url, isMain }),
+      );
       guest.on("will-navigate", (ev, url) => {
+        diag("guest will-navigate", { url });
         try {
           const u = new URL(url);
           if (u.protocol !== "http:" && u.protocol !== "https:") {
             ev.preventDefault();
+            diag("guest will-navigate BLOCKED (non-http)", { url, protocol: u.protocol });
             // Open external schemes (mailto:, tel:) in the OS default app
             if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
               shell.openExternal(url).catch(() => {
@@ -467,8 +508,9 @@ function installWebviewHardening() {
               });
             }
           }
-        } catch {
+        } catch (err) {
           ev.preventDefault();
+          diag("guest will-navigate BLOCKED (parse-error)", { url, err: String(err) });
         }
       });
       guest.setWindowOpenHandler(({ url }) => {
