@@ -63,18 +63,17 @@ export default function Dashboard() {
   useDesktopNotificationClick((upId) => setLocation(`/dashboard?up=${upId}`));
 
   // ── Sticky visited platforms: once loaded, never unmount ──────────────────
+  // Both visitedUpIds and platformTabs are updated in the SAME effect so React
+  // batches them into a single re-render.  If they were separate effects the
+  // component would render null between the two updates (visitedUpIds has the
+  // platform but platformTabs doesn't yet), which destroys and recreates the
+  // iframe, causing a full reload on every navigation.
   const [visitedUpIds, setVisitedUpIds] = useState<number[]>([]);
-
-  useEffect(() => {
-    if (!activeUpId) return;
-    setVisitedUpIds((prev) => (prev.includes(activeUpId) ? prev : [...prev, activeUpId]));
-  }, [activeUpId]);
-
-  // ── Per-platform tab state ────────────────────────────────────────────────
   const [platformTabs, setPlatformTabs] = useState<Record<number, PlatformTabState>>({});
 
   useEffect(() => {
     if (!activeUpId) return;
+    setVisitedUpIds((prev) => (prev.includes(activeUpId) ? prev : [...prev, activeUpId]));
     setPlatformTabs((prev) => {
       if (prev[activeUpId]) return prev; // already initialised
       const tabs = loadTabsForUp(activeUpId);
@@ -404,7 +403,6 @@ function PlatformPane({
       )}
       {desktop ? (
         <webview
-          key={`wv-${upId}-${tabId}`}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
           partition={`persist:koa-up-${upId}-tab-${tabId}`}
@@ -414,7 +412,6 @@ function PlatformPane({
         />
       ) : (
         <iframe
-          key={`if-${upId}-${tabId}`}
           ref={iframeRef}
           src={platform.url}
           title={`${platform.name} (${tabId})`}
