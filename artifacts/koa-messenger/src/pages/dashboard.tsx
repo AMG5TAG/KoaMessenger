@@ -16,11 +16,11 @@ import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
 
 type Tab = { id: string; createdAt: number };
 
-const TAB_STORAGE_KEY = "km_platform_tabs_v3";
+const TAB_STORAGE_KEY = "km_platform_tabs_v4";
 
 function loadTabsForUp(upId: number): Tab[] {
   try {
-    const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
+    const raw = localStorage.getItem(TAB_STORAGE_KEY);
     const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
     const saved = data[String(upId)];
     return saved && saved.length > 0
@@ -33,10 +33,10 @@ function loadTabsForUp(upId: number): Tab[] {
 
 function saveTabsForUp(upId: number, tabs: Tab[]) {
   try {
-    const raw = sessionStorage.getItem(TAB_STORAGE_KEY);
+    const raw = localStorage.getItem(TAB_STORAGE_KEY);
     const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
     data[String(upId)] = tabs;
-    sessionStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data));
   } catch {
     // ignore
   }
@@ -404,19 +404,21 @@ function PlatformPane({
       )}
       {desktop ? (
         <webview
+          key={`wv-${upId}-${tabId}`}
           ref={webviewCallbackRef as unknown as React.RefCallback<HTMLElement>}
           src={platform.url}
-          partition={`persist:plat-${platform.id}-${tabId}`}
+          partition={`persist:koa-up-${upId}-tab-${tabId}`}
           allowpopups={"true" as unknown as boolean}
           useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
           style={{ width: "100%", height: "100%", display: "flex" }}
         />
       ) : (
         <iframe
+          key={`if-${upId}-${tabId}`}
           ref={iframeRef}
           src={platform.url}
           title={`${platform.name} (${tabId})`}
-          name={`km-${tabId}`}
+          name={`km-${upId}-${tabId}`}
           className="w-full h-full border-none bg-white"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-storage-access-by-user-activation"
           allow="clipboard-read; clipboard-write; encrypted-media; fullscreen"
