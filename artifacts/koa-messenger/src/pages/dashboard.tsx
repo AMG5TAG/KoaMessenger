@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearch, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout";
 import { useListUserPlatforms, useGetMe } from "@workspace/api-client-react";
-import { Loader2, ExternalLink, X, Plus, ShieldAlert, LogOut, RefreshCw } from "lucide-react";
+import { Loader2, ExternalLink, ShieldAlert, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDesktop } from "@/lib/desktop";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/notifications-context";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import logoRoundPng from "@assets/Logo_-_KoaMessenger_1779504607995.png";
+import newAppIconPng from "@assets/Logo_-_App_Icon_-_KoaMessenger_1779634081465.png";
 
 type Tab = { id: string; createdAt: number };
 
@@ -182,65 +182,6 @@ export default function Dashboard() {
                 zIndex: isActive ? 1 : 0,
               }}
             >
-              {/* Tab bar */}
-              <div className="h-11 bg-[#0d0d0d] border-b border-[#1f1f1f] flex items-center pl-3 pr-2 gap-1 shrink-0 overflow-x-auto hide-scrollbar">
-                {state.tabs.map((tab, idx) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(upId, tab.id)}
-                    className={`group flex items-center gap-2 h-8 pl-3 pr-1.5 rounded-md text-xs font-medium transition-colors shrink-0 ${
-                      tab.id === state.activeTabId
-                        ? "bg-[#1a1a1a] text-white border border-[#2a2a2a]"
-                        : "text-gray-400 hover:text-white hover:bg-[#151515]"
-                    }`}
-                  >
-                    <span>
-                      {up.displayName ?? up.platform.name}
-                      <span className="text-gray-500"> · Tab {idx + 1}</span>
-                    </span>
-                    {state.tabs.length > 1 && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeTab(upId, tab.id);
-                        }}
-                        className="w-5 h-5 rounded flex items-center justify-center hover:bg-gray-700 opacity-60 hover:opacity-100"
-                        title="Close this tab"
-                      >
-                        <X className="w-3 h-3" />
-                      </span>
-                    )}
-                  </button>
-                ))}
-                <button
-                  onClick={() => addTab(upId)}
-                  className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#151515] rounded-md shrink-0"
-                  title="Open another tab (new isolated session in the desktop app)"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <div className="flex-1" />
-                <SignOutTabButton
-                  upId={upId}
-                  tabId={state.activeTabId}
-                  syncOn={syncOn}
-                  platformName={up.displayName ?? up.platform.name}
-                  onSignOut={() => closeTab(upId, state.activeTabId)}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
-                  onClick={() => window.open(up.platform.url, "_blank", "noopener,noreferrer")}
-                  title="Open in your browser"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  New window
-                </Button>
-              </div>
-
               {/* Platform panes — one per tab, all kept mounted via visibility (display:none would detach webviews) */}
               <div className="flex-1 relative">
                 {state.tabs.map((tab, idx) => (
@@ -275,7 +216,7 @@ export default function Dashboard() {
 function WelcomeScreen() {
   return (
     <div className="h-full w-full flex flex-col items-center justify-center text-center px-4">
-      <img src={logoRoundPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90" />
+      <img src={newAppIconPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90 rounded-3xl" />
       <h2 className="text-2xl font-bold text-white mb-2">Welcome to KoaMessenger</h2>
       <p className="text-gray-400 max-w-md mb-8">
         Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.
@@ -512,70 +453,6 @@ function PlatformPane({
   );
 }
 
-function SignOutTabButton({
-  upId,
-  tabId,
-  syncOn,
-  platformName,
-  onSignOut,
-}: {
-  upId: number;
-  tabId: string;
-  syncOn: boolean;
-  platformName: string;
-  onSignOut: () => void;
-}) {
-  const desktop = isDesktop();
-  const { toast } = useToast();
-  const [busy, setBusy] = useState(false);
-
-  if (!desktop) return null;
-
-  const handleSignOut = async () => {
-    const confirmed = window.confirm(
-      `Sign out of ${platformName} on this tab?\n\nThis will clear cookies and stored data for this session. Your account itself is not affected.`,
-    );
-    if (!confirmed) return;
-    setBusy(true);
-    try {
-      const partition = `persist:koa-up${syncOn ? "" : "-desktop"}-${upId}-tab-${tabId}`;
-      const result = await window.koaDesktop?.clearPartition?.(partition);
-      if (result?.ok) {
-        toast({
-          title: `Signed out of ${platformName}`,
-          description: "Opening a fresh session...",
-          duration: 3000,
-        });
-        // Close this tab — Dashboard will create a fresh one automatically
-        // (closeTab in Dashboard always ensures at least one tab exists).
-        // The new tab gets a new empty partition so the user sees the login page.
-        onSignOut();
-      } else {
-        toast({
-          title: "Couldn't sign out",
-          description: result?.error ?? "Unknown error",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-gray-400 hover:text-white hover:bg-[#151515] h-8 shrink-0"
-      onClick={handleSignOut}
-      disabled={busy}
-      title={`Sign out / clear stored data for this ${platformName} tab`}
-    >
-      <LogOut className="w-4 h-4 mr-2" />
-      Sign out
-    </Button>
-  );
-}
 
 function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
   return (

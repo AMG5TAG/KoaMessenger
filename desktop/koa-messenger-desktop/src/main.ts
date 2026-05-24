@@ -101,7 +101,9 @@ function createMainWindow() {
     autoHideMenuBar: process.platform !== "darwin",
     title: "KoaMessenger",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 16 } : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 22 } : undefined,
+    vibrancy: process.platform === "darwin" ? ("under-window" as const) : undefined,
+    visualEffectState: process.platform === "darwin" ? ("active" as const) : undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
