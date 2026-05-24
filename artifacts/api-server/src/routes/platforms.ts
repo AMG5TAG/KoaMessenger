@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, platformsTable } from "@workspace/db";
-import { eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike } from "drizzle-orm";
 
 const router = Router();
 
@@ -19,19 +19,18 @@ router.get("/platforms/search", async (req, res) => {
     const q = (req.query.q as string) ?? "";
     const category = req.query.category as string | undefined;
 
-    let query = db.select().from(platformsTable);
-
     const conditions = [];
-    if (q) {
-      conditions.push(ilike(platformsTable.name, `%${q}%`));
-    }
-    if (category) {
-      conditions.push(eq(platformsTable.category, category));
-    }
+    if (q) conditions.push(ilike(platformsTable.name, `%${q}%`));
+    if (category) conditions.push(eq(platformsTable.category, category));
 
-    const platforms = conditions.length > 0
-      ? await db.select().from(platformsTable).where(or(...conditions)).orderBy(platformsTable.name)
-      : await db.select().from(platformsTable).orderBy(platformsTable.name);
+    const platforms =
+      conditions.length > 0
+        ? await db
+            .select()
+            .from(platformsTable)
+            .where(and(...conditions))
+            .orderBy(platformsTable.name)
+        : await db.select().from(platformsTable).orderBy(platformsTable.name);
 
     return res.json(platforms);
   } catch (err) {

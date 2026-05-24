@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, userPlatformsTable, platformsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, userPlatformsTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
@@ -36,7 +36,10 @@ router.patch("/notifications/preferences", requireAuth, async (req: any, res) =>
     if (globalEnabled !== undefined) {
       const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, req.userId));
       if (user) {
-        await db.update(usersTable).set({ notificationsEnabled: globalEnabled }).where(eq(usersTable.id, user.id));
+        await db
+          .update(usersTable)
+          .set({ notificationsEnabled: globalEnabled })
+          .where(eq(usersTable.id, user.id));
       }
     }
 
@@ -46,8 +49,13 @@ router.patch("/notifications/preferences", requireAuth, async (req: any, res) =>
           db
             .update(userPlatformsTable)
             .set({ isActive: enabled })
-            .where(eq(userPlatformsTable.platformId, platformId))
-        )
+            .where(
+              and(
+                eq(userPlatformsTable.platformId, platformId),
+                eq(userPlatformsTable.userId, req.userId),
+              ),
+            ),
+        ),
       );
     }
 

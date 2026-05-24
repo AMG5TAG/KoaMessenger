@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, userPlatformsTable, feedbackTable } from "@workspace/db";
-import { eq, count, sql } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 async function ensureUser(clerkId: string) {
@@ -34,7 +34,11 @@ router.patch("/users/me", requireAuth, async (req: any, res) => {
     if (theme !== undefined) updates.theme = theme;
     if (syncAccounts !== undefined) updates.syncAccounts = syncAccounts;
 
-    const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
+    const [updated] = await db
+      .update(usersTable)
+      .set(updates)
+      .where(eq(usersTable.id, user.id))
+      .returning();
     return res.json(updated);
   } catch (err) {
     req.log.error({ err }, "Failed to update user");
@@ -54,7 +58,12 @@ router.get("/users/me/stats", requireAuth, async (req: any, res) => {
     const [activePlatformsRow] = await db
       .select({ count: count() })
       .from(userPlatformsTable)
-      .where(eq(userPlatformsTable.userId, clerkId));
+      .where(
+        and(
+          eq(userPlatformsTable.userId, clerkId),
+          eq(userPlatformsTable.isActive, true),
+        ),
+      );
 
     const [feedbackRow] = await db
       .select({ count: count() })

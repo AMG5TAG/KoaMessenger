@@ -1,28 +1,19 @@
 import { Router } from "express";
 import { db, userPlatformsTable, platformsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
 async function getUserPlatformsWithDetails(userId: string) {
-  const userPlats = await db
+  const rows = await db
     .select()
     .from(userPlatformsTable)
+    .innerJoin(platformsTable, eq(userPlatformsTable.platformId, platformsTable.id))
     .where(eq(userPlatformsTable.userId, userId))
     .orderBy(userPlatformsTable.sortOrder);
 
-  const result = await Promise.all(
-    userPlats.map(async (up) => {
-      const [platform] = await db
-        .select()
-        .from(platformsTable)
-        .where(eq(platformsTable.id, up.platformId));
-      return { ...up, platform };
-    })
-  );
-
-  return result.filter((r) => r.platform);
+  return rows.map((r) => ({ ...r.user_platforms, platform: r.platforms }));
 }
 
 router.get("/user-platforms", requireAuth, async (req: any, res) => {
@@ -74,7 +65,9 @@ router.delete("/user-platforms/:id", requireAuth, async (req: any, res) => {
 
     if (!up) return res.status(404).json({ error: "Not found" });
 
-    await db.delete(userPlatformsTable).where(eq(userPlatformsTable.id, id));
+    await db
+      .delete(userPlatformsTable)
+      .where(and(eq(userPlatformsTable.id, id), eq(userPlatformsTable.userId, req.userId)));
     return res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to remove user platform");
@@ -103,10 +96,13 @@ router.patch("/user-platforms/:id", requireAuth, async (req: any, res) => {
     const [updated] = await db
       .update(userPlatformsTable)
       .set(updates)
-      .where(eq(userPlatformsTable.id, id))
+      .where(and(eq(userPlatformsTable.id, id), eq(userPlatformsTable.userId, req.userId)))
       .returning();
 
-    const [platform] = await db.select().from(platformsTable).where(eq(platformsTable.id, updated.platformId));
+    const [platform] = await db
+      .select()
+      .from(platformsTable)
+      .where(eq(platformsTable.id, updated.platformId));
     return res.json({ ...updated, platform });
   } catch (err) {
     req.log.error({ err }, "Failed to update user platform");
@@ -124,8 +120,8 @@ router.post("/user-platforms/reorder", requireAuth, async (req: any, res) => {
         db
           .update(userPlatformsTable)
           .set({ sortOrder: index })
-          .where(and(eq(userPlatformsTable.id, id), eq(userPlatformsTable.userId, req.userId)))
-      )
+          .where(and(eq(userPlatformsTable.id, id), eq(userPlatformsTable.userId, req.userId))),
+      ),
     );
 
     const result = await getUserPlatformsWithDetails(req.userId);

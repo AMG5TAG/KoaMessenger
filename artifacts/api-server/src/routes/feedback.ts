@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, feedbackTable, feedbackVotesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middlewares/auth";
 
 const router = Router();
@@ -9,7 +9,10 @@ router.get("/feedback", async (req, res) => {
   try {
     const userId = getUserId(req);
 
-    const items = await db.select().from(feedbackTable).orderBy(feedbackTable.votes);
+    const items = await db
+      .select()
+      .from(feedbackTable)
+      .orderBy(desc(feedbackTable.votes));
 
     const result = await Promise.all(
       items.map(async (item) => {
@@ -22,10 +25,10 @@ router.get("/feedback", async (req, res) => {
           hasVoted = !!vote;
         }
         return { ...item, hasVoted };
-      })
+      }),
     );
 
-    return res.json(result.reverse());
+    return res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to list feedback");
     return res.status(500).json({ error: "Failed to list feedback" });
