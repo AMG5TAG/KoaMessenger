@@ -73,6 +73,11 @@ function updateDockBadge(total: number) {
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [tabCounts, dispatch] = useReducer(reducer, {});
 
+  // Keep a ref to the latest counts so callbacks don't need to depend on them
+  // (avoids re-running effects on every count change).
+  const tabCountsRef = useRef(tabCounts);
+  tabCountsRef.current = tabCounts;
+
   const setCount = useCallback(
     (upId: number, tabId: string, count: number, meta?: NotifyMeta) => {
       const key = `${upId}-${tabId}`;
@@ -83,10 +88,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   );
 
   const clearCount = useCallback((upId: number) => {
-    Object.keys(tabCounts).forEach((key) => {
-      if (key.startsWith(`${upId}-`)) dispatch({ key, count: 0 });
+    const prefix = `${upId}-`;
+    Object.keys(tabCountsRef.current).forEach((key) => {
+      if (key.startsWith(prefix)) {
+        dispatch({ key, count: 0 });
+        // Reset the dedupe state so the next message triggers a notification again
+        lastNotified.set(key, 0);
+      }
     });
-  }, [tabCounts]);
+  }, []);
 
   const counts = useMemo<Record<number, number>>(() => {
     const result: Record<number, number> = {};
