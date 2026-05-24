@@ -12,7 +12,7 @@ import {
   SiMatrix, SiSteam, SiVk, SiJitsi,
   SiMastodon, SiThreads, SiXing, SiApple,
   SiGoogle, SiWebex, SiThreema,
-  SiWire, SiKeybase, SiIcq,
+  SiWire, SiKeybase,
   SiGroupme, SiPushbullet, SiCircle, SiTuta,
   SiWorkplace, SiMeta,
 } from "react-icons/si";
@@ -148,7 +148,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   dingtalk: <BsChatSquareFill className="w-full h-full" />,
   "google voice": <FcPhone className="w-full h-full" />,
   groupme: <SiGroupme className="w-full h-full" />,
-  icq: <SiIcq className="w-full h-full" />,
   "steam chat": <SiSteam className="w-full h-full" />,
   steam: <SiSteam className="w-full h-full" />,
   icloud: <SiApple className="w-full h-full" />,
