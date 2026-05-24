@@ -1,9 +1,13 @@
-import { app, BrowserWindow, session, shell, Notification, ipcMain } from "electron";
+import { app, BrowserWindow, session, shell, Notification, ipcMain, nativeImage } from "electron";
+import type { NativeImage } from "electron";
 import path from "node:path";
 
 const DEV_URL = process.env.KOA_DEV_URL ?? "http://localhost:18802/";
 const PROD_URL = process.env.KOA_PROD_URL ?? "https://koamessenger.replit.app/";
 const IS_DEV = !app.isPackaged;
+
+// Set app name early so Linux notification daemon shows the correct app name
+app.setName("KoaMessenger");
 
 const ALLOWED_OPEN_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
@@ -98,6 +102,33 @@ function createMainWindow() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Windows taskbar overlay badge ───────────────────────────────────
+ * ────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Render a small red badge with a white count number as a NativeImage.
+ * Uses an SVG data URL — supported in Electron 28+ (we ship Electron 33).
+ */
+function createWindowsBadgeIcon(count: number): NativeImage | null {
+  if (count <= 0) return null;
+  const label = count > 99 ? "99+" : String(count);
+  const size = 16;
+  const fontSize = label.length > 2 ? 5 : label.length > 1 ? 7 : 9;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+  <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#dc2350"/>
+  <text x="${size / 2}" y="${size / 2}" dy="0.35em"
+        text-anchor="middle" fill="white"
+        font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="bold">${label}</text>
+</svg>`;
+  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  try {
+    return nativeImage.createFromDataURL(dataUrl);
+  } catch {
+    return null;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Native notifications & badge IPC ───────────────────────────────
  * ────────────────────────────────────────────────────────────────────── */
 
@@ -114,14 +145,19 @@ function installNotificationIPC(mainWindow: BrowserWindow) {
   }) => {
     if (!Notification.isSupported()) return;
 
-    const n = new Notification({
+    const notifOptions: Electron.NotificationConstructorOptions = {
       title: payload.title,
       body: payload.body,
       silent: false,
       hasReply: false,
-      // macOS: show in Notification Center even when app is focused
-      // (the badge/text inside the app already shows the count)
-    });
+    };
+
+    // Linux: set urgency so the notification daemon raises it as a banner
+    if (process.platform === "linux") {
+      (notifOptions as Record<string, unknown>).urgency = "normal";
+    }
+
+    const n = new Notification(notifOptions);
 
     const idKey = payload.label ?? payload.title;
     if (payload.upId !== undefined) {
@@ -143,12 +179,31 @@ function installNotificationIPC(mainWindow: BrowserWindow) {
 
   // Renderer updates the Dock / taskbar badge
   ipcMain.on("koa-badge", (_event, count: number) => {
+    // macOS: Dock badge (red number)
     if (process.platform === "darwin") {
       app.dock?.setBadge(count > 0 ? String(count) : "");
     }
-    // Windows taskbar badge (via electron API) — setOverlayIcon or overlayBadge
-    if (process.platform === "win32" && mainWindow) {
-      mainWindow.setOverlayIcon(null, "");
+
+    // Windows: taskbar overlay icon with count badge
+    if (process.platform === "win32") {
+      if (count > 0) {
+        const icon = createWindowsBadgeIcon(count);
+        const description = `${count} unread message${count !== 1 ? "s" : ""}`;
+        if (icon) {
+          mainWindow.setOverlayIcon(icon, description);
+        }
+      } else {
+        mainWindow.setOverlayIcon(null, "");
+      }
+    }
+
+    // Linux (Unity/GNOME): dock badge count
+    if (process.platform === "linux") {
+      try {
+        app.setBadgeCount(count > 0 ? count : 0);
+      } catch {
+        // setBadgeCount may not be available on all Linux desktop environments
+      }
     }
   });
 }
