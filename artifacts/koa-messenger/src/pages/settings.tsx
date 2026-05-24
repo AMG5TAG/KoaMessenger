@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, User, Moon, Sun, Monitor, Shield, Smartphone, Laptop } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { PlatformIcon } from "@/components/platform-icon";
+import { useTheme } from "@/lib/theme-context";
 
 export default function Settings() {
   const { user } = useUser();
@@ -33,14 +34,14 @@ export default function Settings() {
   const updateNotif = useUpdateNotificationPreferences();
 
   const [displayName, setDisplayName] = useState("");
-  const [theme, setTheme] = useState("system");
   const [globalNotifs, setGlobalNotifs] = useState(true);
   const [syncAccounts, setSyncAccounts] = useState(true);
+
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (me) {
       setDisplayName(me.displayName ?? "");
-      setTheme(me.theme ?? "system");
       setSyncAccounts(me.syncAccounts ?? true);
     }
   }, [me]);
@@ -60,6 +61,20 @@ export default function Settings() {
           queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         },
         onError: () => toast({ title: "Error", description: "Failed to save.", variant: "destructive" }),
+      }
+    );
+  };
+
+  const onThemeChange = (value: "light" | "dark" | "system") => {
+    setTheme(value);
+    updateMe.mutate(
+      { data: { theme: value } },
+      {
+        onSuccess: () => {
+          toast({ title: "Saved", description: `Appearance set to ${value}.` });
+          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save appearance.", variant: "destructive" }),
       }
     );
   };
@@ -189,13 +204,13 @@ export default function Settings() {
             </div>
             <div className="flex gap-3">
               {([
-                { value: "light", icon: Sun, label: "Light" },
-                { value: "dark", icon: Moon, label: "Dark" },
-                { value: "system", icon: Monitor, label: "System" },
+                { value: "light" as const, icon: Sun, label: "Light" },
+                { value: "dark" as const, icon: Moon, label: "Dark" },
+                { value: "system" as const, icon: Monitor, label: "System" },
               ] as const).map(({ value, icon: Icon, label }) => (
                 <button
                   key={value}
-                  onClick={() => setTheme(value)}
+                  onClick={() => onThemeChange(value)}
                   className={`flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border transition-all ${
                     theme === value
                       ? "bg-[#dc2350]/10 border-[#dc2350] text-[#dc2350]"
@@ -208,13 +223,6 @@ export default function Settings() {
                 </button>
               ))}
             </div>
-            <Button
-              onClick={saveProfile}
-              disabled={updateMe.isPending}
-              className="mt-4 bg-[#dc2350] hover:bg-[#e34f73] text-white"
-            >
-              {updateMe.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Appearance"}
-            </Button>
           </section>
 
           {/* Notifications */}

@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
 import { NotificationProvider } from "@/lib/notifications-context";
+import { ThemeProvider } from "@/lib/theme-context";
 import { ArrowLeft } from "lucide-react";
 
 import Home from "@/pages/home";
@@ -223,8 +224,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <NotificationProvider>
-            <ClerkProviderWithRoutes />
-            <Toaster />
+            <ThemeProvider>
+              <ClerkProviderWithRoutes />
+              <Toaster />
+            </ThemeProvider>
           </NotificationProvider>
         </TooltipProvider>
       </QueryClientProvider>
