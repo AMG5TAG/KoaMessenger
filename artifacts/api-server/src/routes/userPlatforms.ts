@@ -1,19 +1,33 @@
 import { Router } from "express";
 import { db, userPlatformsTable, platformsTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
 async function getUserPlatformsWithDetails(userId: string) {
-  const rows = await db
+  const ups = await db
     .select()
     .from(userPlatformsTable)
-    .innerJoin(platformsTable, eq(userPlatformsTable.platformId, platformsTable.id))
     .where(eq(userPlatformsTable.userId, userId))
     .orderBy(userPlatformsTable.sortOrder);
 
-  return rows.map((r) => ({ ...r.user_platforms, platform: r.platforms }));
+  if (ups.length === 0) return [];
+
+  const platformIds = Array.from(new Set(ups.map((u) => u.platformId)));
+  const platforms = await db
+    .select()
+    .from(platformsTable)
+    .where(inArray(platformsTable.id, platformIds));
+
+  const platformMap = new Map(platforms.map((p) => [p.id, p]));
+  return ups
+    .map((up) => {
+      const platform = platformMap.get(up.platformId);
+      if (!platform) return null;
+      return { ...up, platform };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 }
 
 router.get("/user-platforms", requireAuth, async (req: any, res) => {
