@@ -176,7 +176,7 @@ export default function Home() {
         <img
           src={logoBadgePng}
           alt="KoaMessenger"
-          className="w-36 h-36 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700"
+          className="w-52 h-52 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700"
         />
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
           All your chats.<br/>
@@ -310,7 +310,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-[#1a1a1a] text-center text-gray-500">
-        <img src={logoBadgePng} alt="KoaMessenger" className="w-16 h-16 mx-auto mb-4 opacity-80" />
+        <img src={logoBadgePng} alt="KoaMessenger" className="w-24 h-24 mx-auto mb-4 opacity-80" />
         <p className="mb-2">© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
         <p className="text-sm">
           Proudly Australian. <span aria-label="Australian flag">&#127462;&#127482;</span> Designed and Hosted by{' '}
