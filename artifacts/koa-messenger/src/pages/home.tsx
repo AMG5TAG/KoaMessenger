@@ -225,6 +225,7 @@ export default function Home() {
       <section className="py-24 px-6 bg-[#0f0f0f]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
+            <Shield className="w-10 h-10 text-[#dc2350] mx-auto mb-4" />
             <h2 className="text-3xl md:text-5xl font-bold mb-4 text-[#dc2350]">Built for privacy purists</h2>
             <p className="text-gray-400 max-w-2xl mx-auto text-lg">We designed KoaMessenger from the ground up to respect your data. No tracking, no reading messages.</p>
           </div>
