@@ -172,11 +172,6 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1a0a10] border border-[#dc2350]/30 text-[#dc2350] text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Shield className="w-4 h-4" />
-          <span>Privacy-first multi-platform messaging hub</span>
-        </div>
-
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
           All your chats.<br/>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#dc2350] to-[#ff4d79]">One beautiful place.</span>
@@ -230,7 +225,7 @@ export default function Home() {
       <section className="py-24 px-6 bg-[#0f0f0f]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Built for privacy purists</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-[#dc2350]">Built for privacy purists</h2>
             <p className="text-gray-400 max-w-2xl mx-auto text-lg">We designed KoaMessenger from the ground up to respect your data. No tracking, no reading messages.</p>
           </div>
 
@@ -294,7 +289,7 @@ export default function Home() {
       <section className="py-20 px-6 bg-gradient-to-b from-[#0a0a0a] to-[#1a0a10]">
         <div className="max-w-3xl mx-auto text-center">
           <Zap className="w-10 h-10 text-[#dc2350] mx-auto mb-6" />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to unify your messaging?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#dc2350]">Ready to unify your messaging?</h2>
           <p className="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
             Join thousands of users who stopped tab-switching and started actually focusing on their conversations.
           </p>
@@ -311,7 +306,7 @@ export default function Home() {
         <p className="mb-2">© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
         <p className="text-sm">
           Proudly Australian. <span aria-label="Australian flag">&#127462;&#127482;</span> Designed and Hosted by{' '}
-          <a href="https://koapos.com.au" target="_blank" rel="noopener noreferrer" className="text-[#dc2350] hover:text-[#e34f73] underline underline-offset-2 transition-colors">
+          <a href="https://koastal.com.au" target="_blank" rel="noopener noreferrer" className="text-[#dc2350] hover:text-[#e34f73] underline underline-offset-2 transition-colors">
             KoaSOFT – Web Design, Software and App Development
           </a>
         </p>
