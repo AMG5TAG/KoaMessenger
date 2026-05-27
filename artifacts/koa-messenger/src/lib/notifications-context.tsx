@@ -92,8 +92,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     Object.keys(tabCountsRef.current).forEach((key) => {
       if (key.startsWith(prefix)) {
         dispatch({ key, count: 0 });
-        // Reset the dedupe state so the next message triggers a notification again
-        lastNotified.set(key, 0);
+        // Preserve lastNotified at the current count rather than resetting to 0.
+        // Resetting to 0 caused a notification loop: the webview title still shows
+        // the old unread count after the user opens the platform (the messages
+        // haven't been read yet), so the next page-title-updated / syncTitle call
+        // would see count > 0 > previous and fire another notification banner.
+        // By keeping lastNotified at the current count, duplicate banners are
+        // suppressed. When the user actually reads the messages, the webview title
+        // clears (count drops to 0), maybeSendNativeNotification updates
+        // lastNotified to 0, and the next genuinely new message will notify again.
+        lastNotified.set(key, tabCountsRef.current[key] ?? 0);
       }
     });
   }, []);

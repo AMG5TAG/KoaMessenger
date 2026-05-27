@@ -4,6 +4,7 @@ import { useUser } from "@clerk/react";
 import { Shield, Lock, Layers, Zap, ArrowRight, ChevronLeft, ChevronRight, X, Monitor, Smartphone, AppWindow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoWordsPng from "@assets/Logo_-_Words_-_KoaMessenger_-_Slogan_-_White_1779504664892.png";
+import logoBadgePng from "@assets/Logo_-_KoaMessenger_1779856817345.png";
 
 const SCREENSHOTS = [
   {
@@ -172,6 +173,11 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+        <img
+          src={logoBadgePng}
+          alt="KoaMessenger"
+          className="w-36 h-36 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700"
+        />
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
           All your chats.<br/>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#dc2350] to-[#ff4d79]">One beautiful place.</span>
@@ -304,6 +310,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-[#1a1a1a] text-center text-gray-500">
+        <img src={logoBadgePng} alt="KoaMessenger" className="w-16 h-16 mx-auto mb-4 opacity-80" />
         <p className="mb-2">© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
         <p className="text-sm">
           Proudly Australian. <span aria-label="Australian flag">&#127462;&#127482;</span> Designed and Hosted by{' '}
