@@ -101,7 +101,10 @@ function createMainWindow() {
     autoHideMenuBar: process.platform !== "darwin",
     title: "KoaMessenger",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 22 } : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 16 } : undefined,
+    // Disable macOS native tab bar (tabbingMode prevents the Tab Bar from appearing
+    // in the Window menu and in the Linked Accounts / Settings views)
+    ...(process.platform === "darwin" ? { tabbingMode: "disallowed" as const } : {}),
     vibrancy: process.platform === "darwin" ? ("under-window" as const) : undefined,
     visualEffectState: process.platform === "darwin" ? ("active" as const) : undefined,
     webPreferences: {
@@ -222,6 +225,14 @@ function buildAppMenu() {
     {
       label: "File",
       submenu: [
+        // Explicitly trap Cmd+N / "New Window" and disable it — without this
+        // macOS injects its own "New Window" item into the File menu.
+        {
+          label: "New Window",
+          accelerator: "CmdOrCtrl+N",
+          enabled: false,
+          visible: false,
+        },
         isMac ? { role: "close" as const } : { role: "quit" as const },
       ],
     },

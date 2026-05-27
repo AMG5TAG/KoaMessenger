@@ -55,6 +55,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   const handleSignOut = () => {
+    // Clear all cached query data before signing out so the sidebar
+    // platform icons are immediately unmounted rather than lingering
+    // from the stale cache after the Clerk session is destroyed.
+    queryClient.clear();
     signOut({ redirectUrl: basePath || "/" });
   };
 
@@ -130,14 +134,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#0d0d0d] border-r border-[#1f1f1f]">
-      {/* Logo — extra top padding on macOS to clear traffic-light buttons */}
+      {/* Logo — on macOS the traffic-light buttons sit at y≈9–23px (centre y=16).
+          We use a fixed 56px (h-14) title-bar zone so the icon renders below them
+          with comfortable clearance, while the full zone stays draggable. */}
       <div
         className={`flex items-center justify-center border-b border-[#1f1f1f] shrink-0 ${
-          desktop ? "pt-12 pb-3" : "h-16"
+          desktop ? "h-14" : "h-16"
         }`}
         style={desktop ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
       >
-        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+        <div
+          className={desktop ? "mt-5" : ""}
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        >
           <Link href="/dashboard">
             <img
               src={newAppIconPng}
