@@ -52,7 +52,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const activeUpId = Number(new URLSearchParams(search).get("up") ?? "0") || null;
   const { toast } = useToast();
-  const { counts } = useNotifications();
+  const { counts, removeCount, pruneCounts } = useNotifications();
   const prevCounts = useRef<Record<number, number>>({});
 
   const { data: userPlatforms, isLoading: userPlatformsLoading } = useListUserPlatforms({
@@ -94,7 +94,15 @@ export default function Dashboard() {
     });
   }, []);
 
+  // Drop notification state for platforms the user has removed — otherwise their
+  // unread counts keep inflating the dock badge and lastNotified entries leak.
+  useEffect(() => {
+    if (!userPlatforms) return;
+    pruneCounts(userPlatforms.map((u) => u.id));
+  }, [userPlatforms, pruneCounts]);
+
   const closeTab = useCallback((upId: number, tabId: string) => {
+    removeCount(upId, tabId);
     setPlatformTabs((prev) => {
       const state = prev[upId];
       if (!state) return prev;
@@ -110,7 +118,7 @@ export default function Dashboard() {
       saveTabsForUp(upId, next);
       return { ...prev, [upId]: { tabs: next, activeTabId: nextActive } };
     });
-  }, []);
+  }, [removeCount]);
 
   const setActiveTab = useCallback((upId: number, tabId: string) => {
     setPlatformTabs((prev) => {
@@ -154,7 +162,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="h-full w-full flex flex-col bg-[#0a0a0a] relative">
+      <div className="h-full w-full flex flex-col bg-background relative">
         {userPlatformsLoading && !activeUpId ? (
           <div className="h-full w-full flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
@@ -218,7 +226,7 @@ function WelcomeScreen() {
     <div className="h-full w-full flex flex-col items-center justify-center text-center px-4">
       <img src={newAppIconPng} alt="KoaMessenger" className="w-40 h-40 mb-6 opacity-90 rounded-3xl" />
       <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to KoaMessenger</h2>
-      <p className="text-gray-400 max-w-md mb-8">
+      <p className="text-muted-foreground max-w-md mb-8">
         Your privacy-first communication hub. Select a platform from the sidebar or add a new one to get started.
       </p>
     </div>
@@ -390,24 +398,24 @@ function PlatformPane({
     <div className="w-full h-full relative">
       {/* Loading spinner — only shown for browser iframes (desktop webviews have native loading chrome) */}
       {!desktop && loading && !timedOut && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
           <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
         </div>
       )}
       {timedOut && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-gray-400">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-card border border-border rounded-xl px-4 py-2 text-sm text-muted-foreground">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
           Taking a while — the site may be slow or have limited connectivity.
         </div>
       )}
       {crashed && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0a0a0a] p-6">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background p-6">
           <div className="max-w-md text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-card border border-border flex items-center justify-center">
               <ShieldAlert className="w-8 h-8 text-amber-400" />
             </div>
             <h3 className="text-lg font-bold text-foreground mb-2">{platform.name} stopped responding</h3>
-            <p className="text-gray-400 text-sm mb-5">
+            <p className="text-muted-foreground text-sm mb-5">
               The page crashed ({crashed}). Your login is still saved — just reload to continue.
             </p>
             <Button onClick={reloadPane} className="bg-[#dc2350] hover:bg-[#e34f73] text-white">
@@ -456,7 +464,7 @@ function PlatformPane({
 
 function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
   return (
-    <div className="h-full w-full flex items-center justify-center bg-[#0a0a0a] p-6">
+    <div className="h-full w-full flex items-center justify-center bg-background p-6">
       <div className="max-w-md text-center">
         <div className="w-20 h-20 mx-auto mb-6">
           <div
@@ -467,11 +475,11 @@ function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
           </div>
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">{platform.name} is native-only</h2>
-        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+        <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           {platform.iframeNotes ??
             `${platform.name} does not offer a web or desktop client. It is only available on Apple devices (iPhone, iPad, and Mac) through the native Messages app.`}
         </p>
-        <p className="text-gray-500 text-xs mt-4">
+        <p className="text-muted-foreground text-xs mt-4">
           You can keep this in your sidebar as a reminder, or remove it from Add Platforms.
         </p>
       </div>
@@ -481,7 +489,7 @@ function NativeOnlyFallback({ platform }: { platform: PlatformMeta }) {
 
 function BlockedFallback({ platform }: { platform: PlatformMeta }) {
   return (
-    <div className="h-full w-full flex items-center justify-center bg-[#0a0a0a] p-6">
+    <div className="h-full w-full flex items-center justify-center bg-background p-6">
       <div className="max-w-md text-center">
         <div className="w-20 h-20 mx-auto mb-6">
           <div
@@ -492,7 +500,7 @@ function BlockedFallback({ platform }: { platform: PlatformMeta }) {
           </div>
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">{platform.name} can't be embedded</h2>
-        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+        <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
           {platform.iframeNotes ??
             `${platform.name} prevents embedding inside other sites for security. You can still launch it in a new browser tab — your login stays with ${platform.name}, never with us.`}
         </p>

@@ -97,7 +97,7 @@ export default function Settings() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
+        <div className="flex-1 flex items-center justify-center bg-background">
           <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
         </div>
       </AppLayout>
@@ -106,15 +106,15 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-6">
+      <div className="flex-1 overflow-y-auto bg-background p-6">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage your account and preferences.</p>
+            <p className="text-muted-foreground text-sm mt-1">Manage your account and preferences.</p>
           </div>
 
           {/* Profile */}
-          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+          <section className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <User className="w-5 h-5 text-[#dc2350]" />
               <h2 className="text-lg font-semibold text-foreground">Profile</h2>
@@ -122,23 +122,23 @@ export default function Settings() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Display Name</label>
+                <label className="block text-sm text-muted-foreground mb-1">Display Name</label>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your display name"
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
+                  className="bg-card border-border text-foreground"
                   data-testid="input-display-name"
                 />
-                <p className="text-xs text-gray-500 mt-1">This name is shown within KoaMessenger. Your email is never visible to others.</p>
+                <p className="text-xs text-muted-foreground mt-1">This name is shown within KoaMessenger. Your email is never visible to others.</p>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Email</label>
-                <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-md px-3 py-2 text-gray-500 text-sm">
+                <label className="block text-sm text-muted-foreground mb-1">Email</label>
+                <div className="bg-card border border-border rounded-md px-3 py-2 text-muted-foreground text-sm">
                   {user?.primaryEmailAddress?.emailAddress ?? "Not available"}
                 </div>
-                <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                   <Shield className="w-3 h-3" /> Your email is private and never shared with other users.
                 </p>
               </div>
@@ -155,7 +155,7 @@ export default function Settings() {
           </section>
 
           {/* Account Sync */}
-          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+          <section className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Smartphone className="w-5 h-5 text-[#dc2350]" />
               <h2 className="text-lg font-semibold text-foreground">Account Sync</h2>
@@ -163,7 +163,7 @@ export default function Settings() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-foreground text-sm font-medium">Sync across web and desktop</p>
-                <p className="text-gray-500 text-xs">When enabled, your platform logins are shared between the browser and the macOS app.</p>
+                <p className="text-muted-foreground text-xs">When enabled, your platform logins are shared between the browser and the macOS app.</p>
               </div>
               <button
                 onClick={() => {
@@ -180,7 +180,7 @@ export default function Settings() {
                   );
                 }}
                 className={`relative w-12 h-6 rounded-full transition-all ${
-                  syncAccounts ? "bg-[#dc2350]" : "bg-[#2a2a2a]"
+                  syncAccounts ? "bg-[#dc2350]" : "bg-input"
                 }`}
                 data-testid="toggle-sync-accounts"
               >
@@ -191,13 +191,13 @@ export default function Settings() {
                 />
               </button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Turning this off isolates your desktop sessions so they never overlap with your browser sessions.
             </p>
           </section>
 
           {/* Theme */}
-          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+          <section className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Monitor className="w-5 h-5 text-[#dc2350]" />
               <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
@@ -214,7 +214,7 @@ export default function Settings() {
                   className={`flex-1 flex flex-col items-center gap-2 py-3 rounded-lg border transition-all ${
                     theme === value
                       ? "bg-[#dc2350]/10 border-[#dc2350] text-[#dc2350]"
-                      : "border-[#2a2a2a] text-gray-400 hover:border-[#dc2350]"
+                      : "border-border text-muted-foreground hover:border-[#dc2350]"
                   }`}
                   data-testid={`button-theme-${value}`}
                 >
@@ -226,21 +226,21 @@ export default function Settings() {
           </section>
 
           {/* Notifications */}
-          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+          <section className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Bell className="w-5 h-5 text-[#dc2350]" />
               <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
             </div>
 
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#2a2a2a]">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
               <div>
                 <p className="text-foreground text-sm font-medium">Global Notifications</p>
-                <p className="text-gray-500 text-xs">Enable or disable all notifications</p>
+                <p className="text-muted-foreground text-xs">Enable or disable all notifications</p>
               </div>
               <button
                 onClick={() => saveNotifications(!globalNotifs)}
                 className={`relative w-12 h-6 rounded-full transition-all ${
-                  globalNotifs ? "bg-[#dc2350]" : "bg-[#2a2a2a]"
+                  globalNotifs ? "bg-[#dc2350]" : "bg-input"
                 }`}
                 data-testid="toggle-global-notifications"
               >
@@ -258,35 +258,35 @@ export default function Settings() {
                   <div key={up.id} className="flex items-center justify-between" data-testid={`row-platform-notif-${up.id}`}>
                     <div className="flex items-center gap-3">
                       <PlatformIcon platform={up.platform} size="sm" />
-                      <span className="text-sm text-gray-300">{up.platform.name}</span>
+                      <span className="text-sm text-muted-foreground">{up.platform.name}</span>
                     </div>
-                    <div className={`text-xs px-2 py-0.5 rounded-full ${up.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-500"}`}>
+                    <div className={`text-xs px-2 py-0.5 rounded-full ${up.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}`}>
                       {up.isActive ? "Active" : "Inactive"}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No platforms added yet.</p>
+              <p className="text-muted-foreground text-sm">No platforms added yet.</p>
             )}
           </section>
 
           {/* Privacy */}
-          <section className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6">
+          <section className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <Shield className="w-5 h-5 text-[#dc2350]" />
               <h2 className="text-lg font-semibold text-foreground">Privacy</h2>
             </div>
-            <div className="space-y-3 text-sm text-gray-400">
-              <div className="flex items-start gap-3 p-3 bg-[#0a0a0a] rounded-lg">
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3 p-3 bg-background rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-[#dc2350] mt-1.5 shrink-0" />
                 <p>Your messages are never stored or processed by KoaMessenger. We only display platform web apps.</p>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-[#0a0a0a] rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-background rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-[#dc2350] mt-1.5 shrink-0" />
                 <p>Your email address is encrypted and never visible to other users.</p>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-[#0a0a0a] rounded-lg">
+              <div className="flex items-start gap-3 p-3 bg-background rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-[#dc2350] mt-1.5 shrink-0" />
                 <p>Platforms run directly in your browser — no message content passes through our servers.</p>
               </div>

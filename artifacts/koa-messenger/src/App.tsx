@@ -45,32 +45,35 @@ const clerkAppearance = {
     logoLinkUrl: basePath || "/",
     logoImageUrl: `${window.location.origin}${basePath}/logo-badge.png`,
   },
+  // This app defines theme tokens as raw HSL components ("0 0% 7%"), so the
+  // shadcn preset's bare var(--card) references don't resolve to colors here.
+  // Wrap them in hsl() — they then follow light/dark mode automatically.
   variables: {
-    colorPrimary: "hsl(344, 76%, 50%)",
-    colorForeground: "hsl(0, 0%, 98%)",
-    colorMutedForeground: "hsl(0, 0%, 63%)",
-    colorDanger: "hsl(0, 84%, 60%)",
-    colorBackground: "hsl(0, 0%, 9%)",
-    colorInput: "hsl(0, 0%, 15%)",
-    colorInputForeground: "hsl(0, 0%, 98%)",
-    colorNeutral: "hsl(0, 0%, 20%)",
+    colorPrimary: "hsl(var(--primary))",
+    colorForeground: "hsl(var(--card-foreground))",
+    colorMutedForeground: "hsl(var(--muted-foreground))",
+    colorDanger: "hsl(var(--destructive))",
+    colorBackground: "hsl(var(--card))",
+    colorInput: "hsl(var(--input))",
+    colorInputForeground: "hsl(var(--card-foreground))",
+    colorNeutral: "hsl(var(--foreground))",
     fontFamily: "Inter, sans-serif",
     borderRadius: "0.5rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#171717] rounded-2xl w-[440px] max-w-full overflow-hidden border border-[#2a2a2a]",
+    cardBox: "bg-card rounded-2xl w-[440px] max-w-full overflow-hidden border border-card-border",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     logoBox: "!w-40 !h-40 !mb-4 mx-auto",
     logoImage: "!w-40 !h-40 object-contain",
-    headerTitle: "text-white font-bold",
-    headerSubtitle: "text-gray-400",
-    socialButtonsBlockButtonText: "text-white",
-    formFieldLabel: "text-gray-300",
+    headerTitle: "text-foreground font-bold",
+    headerSubtitle: "text-muted-foreground",
+    socialButtonsBlockButtonText: "text-foreground",
+    formFieldLabel: "text-muted-foreground",
     footerActionLink: "text-[#dc2350] hover:text-[#e34f73]",
-    footerActionText: "text-gray-400",
-    dividerText: "text-gray-500",
+    footerActionText: "text-muted-foreground",
+    dividerText: "text-muted-foreground",
     identityPreviewEditButton: "text-[#dc2350]",
     formFieldSuccessText: "text-green-400",
     alertText: "text-red-400",
@@ -80,10 +83,10 @@ const clerkAppearance = {
 function SignInPage() {
   const [, setLocation] = useLocation();
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#fff0f3] dark:bg-[#1a0a10] px-4">
       <Button
         variant="ghost"
-        className="mb-4 text-gray-400 hover:text-white hover:bg-transparent"
+        className="mb-4 text-muted-foreground hover:text-foreground hover:bg-transparent"
         onClick={() => setLocation("/")}
       >
         <ArrowLeft className="w-4 h-4 mr-2" /> Back to site
@@ -97,10 +100,10 @@ function SignUpPage() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#1a0a10] px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#fff0f3] dark:bg-[#1a0a10] px-4">
       <Button
         variant="ghost"
-        className="mb-4 text-gray-400 hover:text-white hover:bg-transparent"
+        className="mb-4 text-muted-foreground hover:text-foreground hover:bg-transparent"
         onClick={() => setLocation("/")}
       >
         <ArrowLeft className="w-4 h-4 mr-2" /> Back to site

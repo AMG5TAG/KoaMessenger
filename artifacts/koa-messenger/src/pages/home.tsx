@@ -35,7 +35,7 @@ function ScreenshotGallery() {
           <button
             key={i}
             onClick={() => setLightbox(i)}
-            className="group relative rounded-xl border border-[#1f1f1f] bg-[#111] overflow-hidden hover:border-[#dc2350]/40 transition-all text-left"
+            className="group relative rounded-xl border border-sidebar-border bg-card overflow-hidden hover:border-[#dc2350]/40 transition-all text-left"
           >
             <div className="aspect-video overflow-hidden">
               <img
@@ -46,8 +46,8 @@ function ScreenshotGallery() {
               />
             </div>
             <div className="p-4">
-              <h4 className="text-sm font-semibold text-white mb-1">{s.title}</h4>
-              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+              <h4 className="text-sm font-semibold text-foreground mb-1">{s.title}</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
             </div>
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
               <div className="w-12 h-12 rounded-full bg-[#dc2350]/90 flex items-center justify-center">
@@ -92,7 +92,7 @@ function ScreenshotGallery() {
             </button>
           )}
           <div
-            className="max-w-5xl w-full rounded-xl overflow-hidden border border-gray-800 bg-[#111]"
+            className="max-w-5xl w-full rounded-xl overflow-hidden border border-border bg-card"
             onClick={(e) => e.stopPropagation()}
           >
             <img
@@ -100,9 +100,9 @@ function ScreenshotGallery() {
               alt={SCREENSHOTS[lightbox].title}
               className="w-full h-auto"
             />
-            <div className="p-4 border-t border-gray-800">
-              <h4 className="text-sm font-semibold text-white">{SCREENSHOTS[lightbox].title}</h4>
-              <p className="text-xs text-gray-400 mt-1">{SCREENSHOTS[lightbox].desc}</p>
+            <div className="p-4 border-t border-border">
+              <h4 className="text-sm font-semibold text-foreground">{SCREENSHOTS[lightbox].title}</h4>
+              <p className="text-xs text-muted-foreground mt-1">{SCREENSHOTS[lightbox].desc}</p>
             </div>
           </div>
         </div>
@@ -119,7 +119,7 @@ function MobileCarousel({ screenshots, onOpen }: {
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#111]">
+      <div className="overflow-hidden rounded-xl border border-sidebar-border bg-card">
         <div
           className="flex transition-transform duration-300"
           style={{ transform: `translateX(-${idx * 100}%)` }}
@@ -130,8 +130,8 @@ function MobileCarousel({ screenshots, onOpen }: {
                 <img src={s.src} alt={s.title} className="w-full h-full object-cover" loading="lazy" />
               </div>
               <div className="p-4">
-                <h4 className="text-sm font-semibold text-white mb-1">{s.title}</h4>
-                <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+                <h4 className="text-sm font-semibold text-foreground mb-1">{s.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
               </div>
             </button>
           ))}
@@ -143,7 +143,7 @@ function MobileCarousel({ screenshots, onOpen }: {
           <button
             key={i}
             onClick={() => setIdx(i)}
-            className={`w-2 h-2 rounded-full transition-colors ${i === idx ? 'bg-[#dc2350]' : 'bg-gray-700'}`}
+            className={`w-2 h-2 rounded-full transition-colors ${i === idx ? 'bg-[#dc2350]' : 'bg-muted'}`}
           />
         ))}
       </div>
@@ -156,9 +156,9 @@ export default function Home() {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden selection:bg-[#dc2350] selection:text-white">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-[#dc2350] selection:text-white">
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-[#1f1f1f]">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <img src={logoWordsPng} alt="KoaMessenger" className="h-10 w-auto" />
         </div>
@@ -183,7 +183,7 @@ export default function Home() {
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#dc2350] to-[#ff4d79]">One beautiful place.</span>
         </h1>
 
-        <p className="text-xl text-gray-400 mb-10 max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
+        <p className="text-xl text-muted-foreground mb-10 max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
           KoaMessenger brings WhatsApp, Discord, Telegram, and 65+ more into a single, secure command center. Your data never leaves your browser.
         </p>
 
@@ -198,7 +198,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full px-8 h-14 text-lg border-[#dc2350]/40 text-[#dc2350] hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350] w-full sm:w-auto"
+                className="rounded-full px-8 h-14 text-lg border-[#dc2350]/40 text-[#dc2350] hover:bg-[#fff0f3] dark:hover:bg-[#1a0a10] hover:text-[#e34f73] hover:border-[#dc2350] w-full sm:w-auto"
               >
                 Add Platforms
               </Button>
@@ -211,9 +211,9 @@ export default function Home() {
       </section>
 
       {/* Supported Platforms Marquee */}
-      <section className="py-12 border-y border-[#1a1a1a] overflow-hidden">
+      <section className="py-12 border-y border-border overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 mb-8 text-center">
-          <p className="text-sm text-gray-500 uppercase tracking-wider">Supports 65+ platforms</p>
+          <p className="text-sm text-muted-foreground uppercase tracking-wider">Supports 65+ platforms</p>
         </div>
         <div className="flex animate-marquee whitespace-nowrap">
           {[
@@ -222,65 +222,65 @@ export default function Home() {
             "WeChat", "LINE", "Viber", "Snapchat", "TikTok", "Mastodon",
             "Element", "Jitsi", "Gmail", "Outlook", "Zoom", "Telegram",
           ].map((name, i) => (
-            <span key={i} className="mx-6 text-gray-600 text-sm font-medium">{name}</span>
+            <span key={i} className="mx-6 text-muted-foreground text-sm font-medium">{name}</span>
           ))}
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-24 px-6 bg-[#0f0f0f]">
+      <section className="py-24 px-6 bg-secondary">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Shield className="w-10 h-10 text-[#dc2350] mx-auto mb-4" />
             <h2 className="text-3xl md:text-5xl font-bold mb-4 text-[#dc2350]">Built for privacy purists</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto text-lg">We designed KoaMessenger from the ground up to respect your data. No tracking, no reading messages.</p>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">We designed KoaMessenger from the ground up to respect your data. No tracking, no reading messages.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-2xl bg-[#141414] border border-[#1f1f1f] hover:border-[#dc2350]/50 transition-colors">
+            <div className="p-8 rounded-2xl bg-card border border-sidebar-border hover:border-[#dc2350]/50 transition-colors">
               <Lock className="w-10 h-10 text-[#dc2350] mb-6" />
               <h3 className="text-xl font-bold mb-3">End-to-end Encrypted</h3>
-              <p className="text-gray-400">We simply proxy the web apps in secure iframes. Your connections to platforms remain end-to-end encrypted exactly as they normally would.</p>
+              <p className="text-muted-foreground">We simply proxy the web apps in secure iframes. Your connections to platforms remain end-to-end encrypted exactly as they normally would.</p>
             </div>
-            <div className="p-8 rounded-2xl bg-[#141414] border border-[#1f1f1f] hover:border-[#dc2350]/50 transition-colors">
+            <div className="p-8 rounded-2xl bg-card border border-sidebar-border hover:border-[#dc2350]/50 transition-colors">
               <Shield className="w-10 h-10 text-[#dc2350] mb-6" />
               <h3 className="text-xl font-bold mb-3">Zero Message Storage</h3>
-              <p className="text-gray-400">We never see your messages. Your data never leaves your browser. KoaMessenger is just a beautifully crafted window to your existing accounts.</p>
+              <p className="text-muted-foreground">We never see your messages. Your data never leaves your browser. KoaMessenger is just a beautifully crafted window to your existing accounts.</p>
             </div>
-            <div className="p-8 rounded-2xl bg-[#141414] border border-[#1f1f1f] hover:border-[#dc2350]/50 transition-colors">
+            <div className="p-8 rounded-2xl bg-card border border-sidebar-border hover:border-[#dc2350]/50 transition-colors">
               <Layers className="w-10 h-10 text-[#dc2350] mb-6" />
               <h3 className="text-xl font-bold mb-3">All in One Place</h3>
-              <p className="text-gray-400">Stop tab-switching. Organize WhatsApp, Discord, Slack, and dozens of other platforms in a single, focused workspace.</p>
+              <p className="text-muted-foreground">Stop tab-switching. Organize WhatsApp, Discord, Slack, and dozens of other platforms in a single, focused workspace.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Cross-Platform */}
-      <section className="py-20 px-6 bg-[#0a0a0a] border-t border-[#1a1a1a]">
+      <section className="py-20 px-6 bg-background border-t border-border">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold">Use it everywhere</h2>
-            <p className="text-gray-400 text-lg">
+            <p className="text-muted-foreground text-lg">
               KoaMessenger works in your browser as a progressive web app, and as a native desktop app on macOS with full notification support and per-tab session isolation.
             </p>
             <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#141414] border border-[#1f1f1f]">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-sidebar-border">
                 <Monitor className="w-5 h-5 text-[#dc2350]" />
-                <span className="text-sm text-gray-300">Web + PWA</span>
+                <span className="text-sm text-muted-foreground">Web + PWA</span>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#141414] border border-[#1f1f1f]">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-sidebar-border">
                 <Smartphone className="w-5 h-5 text-[#dc2350]" />
-                <span className="text-sm text-gray-300">Mobile Optimized</span>
+                <span className="text-sm text-muted-foreground">Mobile Optimized</span>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#141414] border border-[#1f1f1f]">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-sidebar-border">
                 <AppWindow className="w-5 h-5 text-[#dc2350]" />
-                <span className="text-sm text-gray-300">macOS Desktop</span>
+                <span className="text-sm text-muted-foreground">macOS Desktop</span>
               </div>
             </div>
           </div>
           <div className="flex-1 max-w-md w-full">
-            <div className="rounded-xl border border-[#1f1f1f] bg-[#111] overflow-hidden">
+            <div className="rounded-xl border border-sidebar-border bg-card overflow-hidden">
               <img
                 src={`${basePath}screenshots/dashboard-telegram.png`}
                 alt="KoaMessenger on desktop"
@@ -293,11 +293,11 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-6 bg-gradient-to-b from-[#0a0a0a] to-[#1a0a10]">
+      <section className="py-20 px-6 bg-gradient-to-b from-background to-[#fff0f3] dark:to-[#1a0a10]">
         <div className="max-w-3xl mx-auto text-center">
           <Zap className="w-10 h-10 text-[#dc2350] mx-auto mb-6" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#dc2350]">Ready to unify your messaging?</h2>
-          <p className="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
             Join thousands of users who stopped tab-switching and started actually focusing on their conversations.
           </p>
           <Link href={user ? "/dashboard" : "/sign-up"}>
@@ -309,7 +309,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-6 border-t border-[#1a1a1a] text-center text-gray-500">
+      <footer className="py-12 px-6 border-t border-border text-center text-muted-foreground">
         <img src={logoBadgePng} alt="KoaMessenger" className="w-24 h-24 mx-auto mb-4 opacity-80" />
         <p className="mb-2">© {new Date().getFullYear()} KoaMessenger. All rights reserved.</p>
         <p className="text-sm">

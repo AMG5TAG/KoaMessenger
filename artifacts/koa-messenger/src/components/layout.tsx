@@ -133,12 +133,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-[#0d0d0d] border-r border-[#1f1f1f]">
+    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       {/* Logo — on macOS the traffic-light buttons sit at y≈9–23px (centre y=16).
           We use a fixed 56px (h-14) title-bar zone so the icon renders below them
           with comfortable clearance, while the full zone stays draggable. */}
       <div
-        className={`flex items-center justify-center border-b border-[#1f1f1f] shrink-0 ${
+        className={`flex items-center justify-center border-b border-sidebar-border shrink-0 ${
           desktop ? "h-14" : "h-16"
         }`}
         style={desktop ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
@@ -162,11 +162,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {isLoading ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="w-12 h-12 rounded-xl bg-gray-800 animate-pulse" />
+              <div key={i} className="w-12 h-12 rounded-xl bg-muted animate-pulse" />
             ))}
           </div>
         ) : activePlatforms.length === 0 ? (
-          <div className="px-2 text-center text-xs text-gray-500">No platforms yet</div>
+          <div className="px-2 text-center text-xs text-muted-foreground">No platforms yet</div>
         ) : (
           activePlatforms.map((up) => {
             const unread = counts[up.id] ?? 0;
@@ -179,7 +179,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <div key={up.id} className="w-14 flex flex-col items-center gap-1.5 px-1">
                   <input
                     autoFocus
-                    className="w-full bg-[#1a1a1a] border border-[#dc2350] rounded-lg px-1 py-0.5 text-white text-xs text-center outline-none"
+                    className="w-full bg-card border border-[#dc2350] rounded-lg px-1 py-0.5 text-foreground text-xs text-center outline-none"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -197,7 +197,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </button>
                     <button
                       onClick={() => setRenamingId(null)}
-                      className="w-5 h-5 rounded flex items-center justify-center bg-gray-700 text-white hover:bg-gray-600"
+                      className="w-5 h-5 rounded flex items-center justify-center bg-muted text-foreground hover:bg-muted-foreground/30"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -239,39 +239,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     />
                     {unread > 0 && !active && (
                       <span className="absolute -top-1.5 -right-1.5 z-10 flex items-center justify-center">
-                        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#dc2350] text-white text-[11px] font-bold flex items-center justify-center leading-none shadow-lg ring-2 ring-[#0d0d0d]">
+                        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#dc2350] text-white text-[11px] font-bold flex items-center justify-center leading-none shadow-lg ring-2 ring-sidebar">
                           {unread > 99 ? "99+" : unread}
                         </span>
                       </span>
                     )}
                     {up.displayName && (
-                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-card border border-border text-foreground text-xs px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                         {up.displayName}
                       </div>
                     )}
                   </div>
                 </ContextMenuTrigger>
-                <ContextMenuContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white min-w-[170px]">
+                <ContextMenuContent className="bg-card border-border text-foreground min-w-[170px]">
                   <ContextMenuItem
                     onClick={() => handleStartRename(up.id, displayName)}
-                    className="hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] cursor-pointer flex items-center gap-2"
+                    className="hover:bg-input focus:bg-input cursor-pointer flex items-center gap-2"
                   >
-                    <Pencil className="w-3.5 h-3.5 text-gray-400" />
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                     Rename
                   </ContextMenuItem>
                   <ContextMenuItem
                     onClick={() =>
                       window.open(up.platform.url, "_blank", "noopener,noreferrer")
                     }
-                    className="hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] cursor-pointer flex items-center gap-2"
+                    className="hover:bg-input focus:bg-input cursor-pointer flex items-center gap-2"
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
                     Open in browser
                   </ContextMenuItem>
-                  <ContextMenuSeparator className="bg-[#2a2a2a]" />
+                  <ContextMenuSeparator className="bg-input" />
                   <ContextMenuItem
                     onClick={() => handleRemovePlatform(up.id, displayName)}
-                    className="hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] cursor-pointer text-red-400 hover:text-red-300 flex items-center gap-2"
+                    className="hover:bg-input focus:bg-input cursor-pointer text-red-400 hover:text-red-300 flex items-center gap-2"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Remove from sidebar
@@ -282,27 +282,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })
         )}
 
-        <div className="w-8 h-px bg-gray-800 my-2" />
+        <div className="w-8 h-px bg-muted my-2" />
 
         <Link href="/add-platforms">
-          <div className="w-12 h-12 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-gray-400 hover:text-white hover:border-[#dc2350] hover:bg-[#1a0a10] transition-colors cursor-pointer">
+          <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-[#dc2350] hover:bg-[#fff0f3] dark:hover:bg-[#1a0a10] transition-colors cursor-pointer">
             <Plus className="w-6 h-6" />
           </div>
         </Link>
       </div>
 
       {/* Bottom nav */}
-      <div className="p-3 border-t border-[#1f1f1f] flex flex-col items-center gap-3">
+      <div className="p-3 border-t border-sidebar-border flex flex-col items-center gap-3">
         <Link href="/feedback">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors cursor-pointer ${location === "/feedback" ? "text-white bg-gray-800" : ""}`}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer ${location === "/feedback" ? "text-foreground bg-muted" : ""}`}
           >
             <FileText className="w-5 h-5" />
           </div>
         </Link>
         <Link href="/settings">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors cursor-pointer ${location === "/settings" ? "text-white bg-gray-800" : ""}`}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer ${location === "/settings" ? "text-foreground bg-muted" : ""}`}
           >
             <Settings className="w-5 h-5" />
           </div>
@@ -312,7 +312,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <PopoverTrigger asChild>
             <Avatar className="w-10 h-10 cursor-pointer border border-transparent hover:border-[#dc2350] transition-colors">
               <AvatarImage src={user?.imageUrl} />
-              <AvatarFallback className="text-white bg-gray-800">
+              <AvatarFallback className="text-foreground bg-muted">
                 {user?.firstName?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
@@ -320,28 +320,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <PopoverContent
             side="right"
             align="end"
-            className="w-52 bg-[#1a1a1a] border-[#2a2a2a] text-white p-2"
+            className="w-52 bg-card border-border text-foreground p-2"
           >
             <div className="flex items-center gap-2 p-2 mb-1">
               <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback className="text-sm text-white bg-gray-800">
+                <AvatarFallback className="text-sm text-foreground bg-muted">
                   {user?.firstName?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {user?.fullName ?? user?.firstName ?? "User"}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
               </div>
             </div>
-            <div className="h-px bg-[#2a2a2a] my-1" />
+            <div className="h-px bg-input my-1" />
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-red-400 hover:text-red-300 hover:bg-[#2a2a2a] transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-red-400 hover:text-red-300 hover:bg-input transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign out
@@ -353,7 +353,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden selection:bg-[#dc2350] selection:text-white">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden selection:bg-[#dc2350] selection:text-white">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex w-20 flex-col h-full z-20">
         {SidebarContent()}
@@ -361,15 +361,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Header & Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="md:hidden h-16 bg-[#0d0d0d] border-b border-[#1f1f1f] flex items-center justify-between px-4 z-20">
+        <header className="md:hidden h-16 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 z-20">
           <div className="flex items-center gap-3">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-gray-800">
+                <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted">
                   <Menu className="w-6 h-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-20 p-0 bg-[#0d0d0d] border-[#1f1f1f]">
+              <SheetContent side="left" className="w-20 p-0 bg-sidebar border-sidebar-border">
                 {SidebarContent()}
               </SheetContent>
             </Sheet>
@@ -379,7 +379,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <PopoverTrigger asChild>
               <Avatar className="w-8 h-8 cursor-pointer border border-transparent hover:border-[#dc2350] transition-colors">
                 <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback className="text-xs text-white bg-gray-800">
+                <AvatarFallback className="text-xs text-foreground bg-muted">
                   {user?.firstName?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -387,28 +387,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <PopoverContent
               side="bottom"
               align="end"
-              className="w-52 bg-[#1a1a1a] border-[#2a2a2a] text-white p-2"
+              className="w-52 bg-card border-border text-foreground p-2"
             >
               <div className="flex items-center gap-2 p-2 mb-1">
                 <Avatar className="w-8 h-8 shrink-0">
                   <AvatarImage src={user?.imageUrl} />
-                  <AvatarFallback className="text-sm text-white bg-gray-800">
+                  <AvatarFallback className="text-sm text-foreground bg-muted">
                     {user?.firstName?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {user?.fullName ?? user?.firstName ?? "User"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {user?.primaryEmailAddress?.emailAddress}
                   </p>
                 </div>
               </div>
-              <div className="h-px bg-[#2a2a2a] my-1" />
+              <div className="h-px bg-input my-1" />
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-red-400 hover:text-red-300 hover:bg-[#2a2a2a] transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-red-400 hover:text-red-300 hover:bg-input transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 Sign out

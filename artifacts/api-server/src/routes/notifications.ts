@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db, usersTable, userPlatformsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
+import { UpdateNotificationPreferencesBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateBody } from "../middlewares/validate";
 
 const router = Router();
 
@@ -29,7 +31,7 @@ router.get("/notifications/preferences", requireAuth, async (req: any, res) => {
   }
 });
 
-router.patch("/notifications/preferences", requireAuth, async (req: any, res) => {
+router.patch("/notifications/preferences", requireAuth, validateBody(UpdateNotificationPreferencesBody), async (req: any, res) => {
   try {
     const { globalEnabled, platformPreferences } = req.body;
 

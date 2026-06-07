@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db, feedbackTable, feedbackVotesTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
+import { CreateFeedbackBody } from "@workspace/api-zod";
 import { requireAuth, getUserId } from "../middlewares/auth";
+import { validateBody } from "../middlewares/validate";
 
 const router = Router();
 
@@ -35,14 +37,12 @@ router.get("/feedback", async (req, res) => {
   }
 });
 
-router.post("/feedback", requireAuth, async (req: any, res) => {
+router.post("/feedback", requireAuth, validateBody(CreateFeedbackBody), async (req: any, res) => {
   try {
     const { type, title, description, platformName } = req.body;
-    if (!type || !title || !description) {
-      return res.status(400).json({ error: "type, title, description required" });
-    }
-    if (!["feature_request", "platform_suggestion"].includes(type)) {
-      return res.status(400).json({ error: "Invalid type" });
+    // Schema enforces types and the type enum; still reject blank strings.
+    if (!title.trim() || !description.trim()) {
+      return res.status(400).json({ error: "title and description must not be empty" });
     }
 
     const [item] = await db

@@ -89,13 +89,13 @@ export default function Feedback() {
 
   return (
     <AppLayout>
-      <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-6">
+      <div className="flex-1 overflow-y-auto bg-background p-6">
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Feedback</h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 Help shape KoaMessenger — request features or suggest new platforms.
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function Feedback() {
 
           {/* Form */}
           {showForm && user && (
-            <div className="bg-[#111] border border-[#2a2a2a] rounded-xl p-6 mb-6">
+            <div className="bg-card border border-border rounded-xl p-6 mb-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">New Feedback</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Type selector */}
@@ -124,7 +124,7 @@ export default function Feedback() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                       type === "feature_request"
                         ? "bg-[#dc2350] border-[#dc2350] text-white"
-                        : "bg-transparent border-[#2a2a2a] text-gray-400 hover:border-[#dc2350]"
+                        : "bg-transparent border-border text-muted-foreground hover:border-[#dc2350]"
                     }`}
                     data-testid="button-type-feature"
                   >
@@ -137,7 +137,7 @@ export default function Feedback() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
                       type === "platform_suggestion"
                         ? "bg-[#dc2350] border-[#dc2350] text-white"
-                        : "bg-transparent border-[#2a2a2a] text-gray-400 hover:border-[#dc2350]"
+                        : "bg-transparent border-border text-muted-foreground hover:border-[#dc2350]"
                     }`}
                     data-testid="button-type-platform"
                   >
@@ -147,23 +147,23 @@ export default function Feedback() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Title</label>
+                  <label className="block text-sm text-muted-foreground mb-1">Title</label>
                   <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Brief title for your feedback"
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
+                    className="bg-card border-border text-foreground"
                     data-testid="input-feedback-title"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Description</label>
+                  <label className="block text-sm text-muted-foreground mb-1">Description</label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe your idea in detail..."
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground resize-none"
+                    className="bg-card border-border text-foreground resize-none"
                     rows={4}
                     data-testid="input-feedback-description"
                   />
@@ -171,12 +171,12 @@ export default function Feedback() {
 
                 {type === "platform_suggestion" && (
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Platform Name</label>
+                    <label className="block text-sm text-muted-foreground mb-1">Platform Name</label>
                     <Input
                       value={platformName}
                       onChange={(e) => setPlatformName(e.target.value)}
                       placeholder="e.g. BeReal, Clubhouse"
-                      className="bg-[#1a1a1a] border-[#2a2a2a] text-foreground"
+                      className="bg-card border-border text-foreground"
                       data-testid="input-platform-name"
                     />
                   </div>
@@ -195,7 +195,7 @@ export default function Feedback() {
                     type="button"
                     variant="outline"
                     onClick={() => setShowForm(false)}
-                    className="border-[#2a2a2a] text-gray-400"
+                    className="border-border text-muted-foreground"
                   >
                     Cancel
                   </Button>
@@ -205,7 +205,7 @@ export default function Feedback() {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-[#111] rounded-lg p-1 mb-6 border border-[#2a2a2a]">
+          <div className="flex gap-1 bg-card rounded-lg p-1 mb-6 border border-border">
             {(["all", "feature_request", "platform_suggestion"] as const).map((tab) => (
               <button
                 key={tab}
@@ -213,7 +213,7 @@ export default function Feedback() {
                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
                   activeTab === tab
                     ? "bg-[#dc2350] text-white"
-                    : "text-gray-400 hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid={`tab-feedback-${tab}`}
               >
@@ -228,7 +228,7 @@ export default function Feedback() {
               <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
             </div>
           ) : filtered?.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
+            <div className="text-center py-16 text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No feedback yet. Be the first to submit!</p>
             </div>
@@ -237,7 +237,7 @@ export default function Feedback() {
               {filtered?.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[#111] border border-[#2a2a2a] rounded-xl p-4 flex gap-4 hover:border-[#3a3a3a] transition-all"
+                  className="bg-card border border-border rounded-xl p-4 flex gap-4 hover:border-muted-foreground/30 transition-all"
                   data-testid={`card-feedback-${item.id}`}
                 >
                   {/* Vote */}
@@ -247,7 +247,7 @@ export default function Feedback() {
                     className={`flex flex-col items-center gap-1 min-w-[48px] rounded-lg p-2 border transition-all ${
                       item.hasVoted
                         ? "bg-[#dc2350]/20 border-[#dc2350] text-[#dc2350]"
-                        : "border-[#2a2a2a] text-gray-400 hover:border-[#dc2350] hover:text-[#dc2350]"
+                        : "border-border text-muted-foreground hover:border-[#dc2350] hover:text-[#dc2350]"
                     }`}
                     data-testid={`button-vote-${item.id}`}
                   >
@@ -269,12 +269,12 @@ export default function Feedback() {
                         >
                           {item.type === "feature_request" ? "Feature" : "Platform"}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[item.status] ?? "bg-gray-500/20 text-gray-400"}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[item.status] ?? "bg-muted text-muted-foreground"}`}>
                           {item.status.replace("_", " ")}
                         </span>
                       </div>
                     </div>
-                    <p className="text-gray-400 text-sm line-clamp-2">{item.description}</p>
+                    <p className="text-muted-foreground text-sm line-clamp-2">{item.description}</p>
                     {item.platformName && (
                       <p className="text-[#dc2350] text-xs mt-1">Platform: {item.platformName}</p>
                     )}

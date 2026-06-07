@@ -88,29 +88,29 @@ export default function AddPlatforms() {
 
   return (
     <AppLayout>
-      <div className="h-full flex flex-col bg-[#0a0a0a] overflow-y-auto hide-scrollbar p-6 lg:p-10">
+      <div className="h-full flex flex-col bg-background overflow-y-auto hide-scrollbar p-6 lg:p-10">
         <div className="max-w-5xl mx-auto w-full">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-foreground mb-3">Add Platforms</h1>
-            <p className="text-gray-400 text-lg">Connect your favorite messaging apps to your unified workspace.</p>
+            <p className="text-muted-foreground text-lg">Connect your favorite messaging apps to your unified workspace.</p>
           </div>
 
           {!isDesktop() && (
-            <div className="mb-8 bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
+            <div className="mb-8 bg-[#fff0f3] dark:bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
               <Info className="w-5 h-5 text-[#dc2350] shrink-0 mt-0.5" />
-              <div className="text-sm text-gray-300 leading-relaxed">
-                <strong className="text-foreground">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
               </div>
             </div>
           )}
 
           <div className="relative mb-12 max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for WhatsApp, Discord, Slack..."
-              className="w-full bg-[#141414] border-gray-800 text-foreground pl-12 h-14 rounded-xl text-lg focus-visible:ring-[#dc2350]"
+              className="w-full bg-card border-border text-foreground pl-12 h-14 rounded-xl text-lg focus-visible:ring-[#dc2350]"
             />
           </div>
 
@@ -119,8 +119,8 @@ export default function AddPlatforms() {
               <Loader2 className="w-8 h-8 text-[#dc2350] animate-spin" />
             </div>
           ) : filteredPlatforms?.length === 0 ? (
-            <div className="text-center py-20 bg-[#141414] rounded-2xl border border-gray-800">
-              <p className="text-gray-400 text-lg">No platforms found matching "{search}"</p>
+            <div className="text-center py-20 bg-card rounded-2xl border border-border">
+              <p className="text-muted-foreground text-lg">No platforms found matching "{search}"</p>
               <Button variant="link" className="text-[#dc2350] mt-2" onClick={() => setSearch('')}>Clear search</Button>
             </div>
           ) : (
@@ -141,7 +141,7 @@ export default function AddPlatforms() {
                         return (
                           <div
                             key={platform.id}
-                            className="bg-[#141414] border border-gray-800 hover:border-gray-600 rounded-2xl p-5 flex items-start gap-4 transition-all hover:-translate-y-1 hover:shadow-lg group"
+                            className="bg-card border border-border hover:border-muted-foreground/30 rounded-2xl p-5 flex items-start gap-4 transition-all hover:-translate-y-1 hover:shadow-lg group"
                           >
                             <PlatformIcon
                               name={platform.name}
@@ -154,7 +154,7 @@ export default function AddPlatforms() {
                                 <h3 className="font-semibold text-foreground text-lg truncate">{platform.name}</h3>
                                 {platform.embedsInIframe === false && (
                                   <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[10px] font-medium shrink-0"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium shrink-0"
                                     title="This platform blocks embedding — it will open in a new browser tab."
                                   >
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -162,12 +162,12 @@ export default function AddPlatforms() {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-500 line-clamp-2 mt-1">{platform.description}</p>
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{platform.description}</p>
                               {/* Account labels for existing entries */}
                               {entries.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-2">
                                   {entries.map((up) => (
-                                    <span key={up.id} className="inline-flex items-center gap-1 text-[11px] bg-[#1a2e1e] text-[#4ade80] px-2 py-0.5 rounded-full">
+                                    <span key={up.id} className="inline-flex items-center gap-1 text-[11px] bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] px-2 py-0.5 rounded-full">
                                       {up.displayName ?? platform.name}
                                     </span>
                                   ))}
@@ -181,7 +181,7 @@ export default function AddPlatforms() {
                                   <Button
                                     size="icon"
                                     variant="secondary"
-                                    className="bg-[#1a2e1e] text-[#4ade80] hover:bg-red-950 hover:text-red-400 rounded-xl transition-all"
+                                    className="bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] hover:bg-red-100 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-all"
                                     onClick={() => handleRemoveFirst(platform.id)}
                                     disabled={isMutating}
                                     title="Remove account"
@@ -192,7 +192,7 @@ export default function AddPlatforms() {
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="text-gray-400 hover:text-[#dc2350] hover:bg-[#1a0a10] rounded-xl transition-all"
+                                    className="text-muted-foreground hover:text-[#dc2350] hover:bg-[#fff0f3] dark:hover:bg-[#1a0a10] rounded-xl transition-all"
                                     onClick={() => openAddAccountDialog(platform.id, platform.name)}
                                     disabled={isMutating}
                                     title="Add another account"
@@ -204,7 +204,7 @@ export default function AddPlatforms() {
                                 <Button
                                   size="icon"
                                   variant="default"
-                                  className="bg-[#1f1f1f] text-foreground hover:bg-[#dc2350] hover:text-white rounded-xl transition-all"
+                                  className="bg-secondary text-foreground hover:bg-[#dc2350] hover:text-white rounded-xl transition-all"
                                   onClick={() => handleAdd(platform.id)}
                                   disabled={isMutating}
                                 >
@@ -226,10 +226,10 @@ export default function AddPlatforms() {
 
       {/* Add another account dialog */}
       <Dialog open={!!addingAccount} onOpenChange={(open) => !open && setAddingAccount(null)}>
-        <DialogContent className="bg-[#141414] border-gray-800 text-foreground sm:max-w-sm">
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Add another {addingAccount?.name} account</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Give this account a label so you can tell them apart in the sidebar.
             </DialogDescription>
           </DialogHeader>
@@ -240,11 +240,11 @@ export default function AddPlatforms() {
               value={accountLabel}
               onChange={(e) => setAccountLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && confirmAddAccount()}
-              className="bg-[#0a0a0a] border-gray-700 text-foreground focus-visible:ring-[#dc2350]"
+              className="bg-background border-border text-foreground focus-visible:ring-[#dc2350]"
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" className="text-gray-400" onClick={() => setAddingAccount(null)}>
+            <Button variant="ghost" className="text-muted-foreground" onClick={() => setAddingAccount(null)}>
               <X className="w-4 h-4 mr-1" /> Cancel
             </Button>
             <Button className="bg-[#dc2350] hover:bg-[#e34f73] text-white" onClick={confirmAddAccount}>

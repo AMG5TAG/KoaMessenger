@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db, usersTable, userPlatformsTable, feedbackTable } from "@workspace/db";
 import { and, count, eq } from "drizzle-orm";
+import { UpdateMeBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateBody } from "../middlewares/validate";
 
 async function ensureUser(clerkId: string) {
   let [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
@@ -23,7 +25,7 @@ router.get("/users/me", requireAuth, async (req: any, res) => {
   }
 });
 
-router.patch("/users/me", requireAuth, async (req: any, res) => {
+router.patch("/users/me", requireAuth, validateBody(UpdateMeBody), async (req: any, res) => {
   try {
     const user = await ensureUser(req.userId);
     const { displayName, notificationsEnabled, theme, syncAccounts } = req.body;
@@ -33,6 +35,9 @@ router.patch("/users/me", requireAuth, async (req: any, res) => {
     if (notificationsEnabled !== undefined) updates.notificationsEnabled = notificationsEnabled;
     if (theme !== undefined) updates.theme = theme;
     if (syncAccounts !== undefined) updates.syncAccounts = syncAccounts;
+
+    // Drizzle's .set() throws on an empty object — nothing to update, return as-is.
+    if (Object.keys(updates).length === 0) return res.json(user);
 
     const [updated] = await db
       .update(usersTable)

@@ -11,9 +11,20 @@ import { isDesktop } from "./desktop";
 
 type TabCounts = Record<string, number>; // key: `${upId}-${tabId}`
 
-function reducer(state: TabCounts, action: { key: string; count: number }): TabCounts {
-  if (state[action.key] === action.count) return state;
-  return { ...state, [action.key]: action.count };
+type CountAction =
+  | { type: "set"; key: string; count: number }
+  | { type: "remove"; keys: string[] };
+
+function reducer(state: TabCounts, action: CountAction): TabCounts {
+  if (action.type === "set") {
+    if (state[action.key] === action.count) return state;
+    return { ...state, [action.key]: action.count };
+  }
+  const keys = action.keys.filter((k) => k in state);
+  if (keys.length === 0) return state;
+  const next = { ...state };
+  for (const k of keys) delete next[k];
+  return next;
 }
 
 interface NotifyMeta {
@@ -25,12 +36,18 @@ interface NotificationContextValue {
   counts: Record<number, number>; // upId -> total across all tabs
   setCount: (upId: number, tabId: string, count: number, meta?: NotifyMeta) => void;
   clearCount: (upId: number) => void;
+  /** Drop all state for a single tab (e.g. when the user closes it). */
+  removeCount: (upId: number, tabId: string) => void;
+  /** Drop state for any platform not in validUpIds (e.g. removed platforms). */
+  pruneCounts: (validUpIds: Iterable<number>) => void;
 }
 
 const NotificationContext = createContext<NotificationContextValue>({
   counts: {},
   setCount: () => {},
   clearCount: () => {},
+  removeCount: () => {},
+  pruneCounts: () => {},
 });
 
 /** Last count we notified for per (upId, tabId) to avoid spamming. */
@@ -81,17 +98,36 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const setCount = useCallback(
     (upId: number, tabId: string, count: number, meta?: NotifyMeta) => {
       const key = `${upId}-${tabId}`;
-      dispatch({ key, count });
+      dispatch({ type: "set", key, count });
       maybeSendNativeNotification(upId, tabId, count, meta);
     },
     [],
   );
 
+  const removeCount = useCallback((upId: number, tabId: string) => {
+    const key = `${upId}-${tabId}`;
+    lastNotified.delete(key);
+    dispatch({ type: "remove", keys: [key] });
+  }, []);
+
+  const pruneCounts = useCallback((validUpIds: Iterable<number>) => {
+    const valid = new Set(validUpIds);
+    const isStale = (key: string) => {
+      const upId = parseInt(key.split("-")[0]);
+      return !isNaN(upId) && !valid.has(upId);
+    };
+    for (const key of Array.from(lastNotified.keys())) {
+      if (isStale(key)) lastNotified.delete(key);
+    }
+    const staleKeys = Object.keys(tabCountsRef.current).filter(isStale);
+    if (staleKeys.length > 0) dispatch({ type: "remove", keys: staleKeys });
+  }, []);
+
   const clearCount = useCallback((upId: number) => {
     const prefix = `${upId}-`;
     Object.keys(tabCountsRef.current).forEach((key) => {
       if (key.startsWith(prefix)) {
-        dispatch({ key, count: 0 });
+        dispatch({ type: "set", key, count: 0 });
         // Preserve lastNotified at the current count rather than resetting to 0.
         // Resetting to 0 caused a notification loop: the webview title still shows
         // the old unread count after the user opens the platform (the messages
@@ -125,7 +161,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [totalUnread]);
 
   return (
-    <NotificationContext.Provider value={{ counts, setCount, clearCount }}>
+    <NotificationContext.Provider
+      value={{ counts, setCount, clearCount, removeCount, pruneCounts }}
+    >
       {children}
     </NotificationContext.Provider>
   );
