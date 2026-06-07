@@ -153,3 +153,12 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # Security: force-patch transitive deps flagged by `pnpm audit` until upstream bumps land.
+  # qs <6.15.2 (via express): prototype-pollution/DoS in stringify — GHSA-q8mj-m7cp-5q26
+  qs: "^6.15.2"
+  # js-cookie <3.0.7 (via @clerk/shared): cookie-attribute injection — GHSA-qjx8-664m-686j
+  js-cookie: "^3.0.7"
+  # tar <7.5.11 (build-time, via electron-builder>app-builder-lib): path traversal / arbitrary write
+  tar: "^7.5.11"
+  # tmp <0.2.6 (build-time, via electron-builder): path traversal — GHSA-ph9p-34f9-6g65
+  tmp: "^0.2.6"

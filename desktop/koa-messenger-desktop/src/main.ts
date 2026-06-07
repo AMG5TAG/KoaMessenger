@@ -20,6 +20,27 @@ app.setName("KoaMessenger");
 
 const ALLOWED_OPEN_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
+// Origin of our own shell app. Sensitive IPC is only honored from this origin,
+// so that if the top frame is ever navigated to a third-party page (e.g. during
+// an OAuth redirect, or a compromise) that page cannot drive privileged IPC.
+const SHELL_ORIGIN = (() => {
+  try {
+    return new URL(IS_DEV ? DEV_URL : PROD_URL).origin;
+  } catch {
+    return "";
+  }
+})();
+
+/** True only when an IPC message originates from our own shell origin. */
+function isTrustedSender(event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent): boolean {
+  try {
+    const url = event.senderFrame?.url ?? event.sender.getURL();
+    return !!url && new URL(url).origin === SHELL_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  * Single-instance lock — prevent multiple app processes
  * ────────────────────────────────────────────────────────────────────── */
@@ -58,6 +79,13 @@ function attachHeaderStripping(ses: Electron.Session) {
 /* ──────────────────────────────────────────────────────────────────────
  * Permissions
  * ────────────────────────────────────────────────────────────────────── */
+// Permissions auto-granted to embedded third-party platform sessions.
+// `media` (calls), `geolocation` (location sharing) and `mediaKeySystem`
+// (DRM playback) are legitimate, user-visible messaging features and are
+// kept. `clipboard-read` is intentionally NOT granted: it lets a page silently
+// read whatever the user last copied (passwords, 2FA codes) with no gesture.
+// Normal Ctrl/Cmd-V paste and paste-image still work — those go through the
+// paste event, not this permission.
 const ALLOWED_PERMISSIONS = new Set([
   "notifications",
   "media",
@@ -66,9 +94,29 @@ const ALLOWED_PERMISSIONS = new Set([
   "pointerLock",
   "fullscreen",
   "openExternal",
-  "clipboard-read",
   "clipboard-sanitized-write",
 ]);
+
+// The shell (our own first-party app) needs only a small benign set. A
+// deny-by-default handler means that even if the shell origin is compromised
+// it cannot silently reach camera/mic/geolocation/clipboard-read. Without this
+// the shell session falls back to Electron's permissive default.
+const SHELL_ALLOWED_PERMISSIONS = new Set([
+  "notifications",
+  "fullscreen",
+  "pointerLock",
+  "clipboard-sanitized-write",
+]);
+
+function hardenShellSession() {
+  const ses = session.fromPartition("persist:koa-shell");
+  ses.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(SHELL_ALLOWED_PERMISSIONS.has(permission));
+  });
+  ses.setPermissionCheckHandler((_webContents, permission) => {
+    return SHELL_ALLOWED_PERMISSIONS.has(permission);
+  });
+}
 
 const hardenedSessions = new WeakSet<Electron.Session>();
 function ensurePartitionHardened(partition: string | undefined) {
@@ -411,7 +459,13 @@ function installNotificationIPC() {
  * tab (i.e. "log out of this account"), without touching others.
  * ────────────────────────────────────────────────────────────────────── */
 function installSessionIPC() {
-  ipcMain.handle("koa-clear-partition", async (_event, partition: string) => {
+  ipcMain.handle("koa-clear-partition", async (event, partition: string) => {
+    // Only our own shell origin may invoke this. If the top frame has navigated
+    // away (OAuth redirect, or a compromised/embedded third-party page), reject
+    // so it cannot wipe another account's session data.
+    if (!isTrustedSender(event)) {
+      return { ok: false, error: "untrusted-sender" };
+    }
     // Hard guard: only allow clearing per-platform partitions, never the shell.
     if (typeof partition !== "string" || !partition.startsWith("persist:koa-up")) {
       return { ok: false, error: "invalid-partition" };
@@ -445,26 +499,36 @@ function installSessionIPC() {
  * ────────────────────────────────────────────────────────────────────── */
 function installWebviewHardening() {
   app.on("web-contents-created", (_event, contents) => {
-    contents.on("will-attach-webview", (_e, _webPreferences, params) => {
-      // IMPORTANT: We deliberately DO NOT mutate `webPreferences` here.
-      // Electron's webview tag already enforces safe defaults
-      // (contextIsolation=true, nodeIntegration=false). Forcibly setting
-      // `sandbox: true` or other flags from this handler was the root
-      // cause of a regression where webviews rendered as a solid black
-      // area on macOS — the BrowserView never finished attaching because
-      // the renderer process initialization mismatched what the React
-      // <webview> tag expected. Trust the defaults.
+    contents.on("will-attach-webview", (event, webPreferences, params) => {
+      // Enforce the security-critical webview flags from the main process
+      // instead of trusting the renderer-supplied <webview> attributes. A
+      // compromised shell renderer must not be able to spawn a webview with
+      // Node access or its own preload script.
+      //
+      // IMPORTANT: We deliberately do NOT set `sandbox` here. Forcing
+      // `sandbox: true` from this handler was the root cause of a regression
+      // where webviews rendered as a solid black area on macOS (the
+      // BrowserView never finished attaching). nodeIntegration=false +
+      // contextIsolation=true already match the safe webview defaults the
+      // React <webview> tag expects, so setting them explicitly is a no-op
+      // for legitimate panes while closing the injection vector.
+      webPreferences.nodeIntegration = false;
+      webPreferences.nodeIntegrationInSubFrames = false;
+      webPreferences.contextIsolation = true;
+      // Strip any renderer-supplied preload — our platform webviews never use
+      // one, so this only removes an attacker-injected preload path.
+      delete (webPreferences as { preload?: string }).preload;
+
       const partition = (params as { partition?: string }).partition;
-      if (partition && partition.startsWith("persist:koa-up")) {
-        // Only attach header stripping + permission handlers for our own
-        // platform partitions. Do not touch the shell partition or any
-        // unknown partitions.
-        ensurePartitionHardened(partition);
+      // Only our own per-platform partitions may attach. This blocks an
+      // attacker-controlled renderer from attaching a webview onto the
+      // privileged shell session (persist:koa-shell) or any other partition.
+      if (!partition || !partition.startsWith("persist:koa-up")) {
+        event.preventDefault();
+        return;
       }
-      // Non-koa-up partitions are still allowed to attach (so the shell
-      // could theoretically embed something if needed). The renderer code
-      // never does this, but we no longer hijack `src` to about:blank
-      // from the main process — that was a footgun.
+      // Attach header stripping + permission handlers for our platform partition.
+      ensurePartitionHardened(partition);
     });
 
     contents.on("did-attach-webview", (_e, guest) => {
@@ -513,6 +577,7 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
   buildAppMenu();
+  hardenShellSession();
   installWebviewHardening();
   installNotificationIPC();
   installSessionIPC();
