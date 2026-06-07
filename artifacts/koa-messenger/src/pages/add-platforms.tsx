@@ -17,6 +17,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+// Shown in the "Popular" section at the top of the page, in this order.
+const POPULAR_MESSENGER_SLUGS = [
+  "whatsapp",
+  "facebook-messenger",
+  "telegram",
+  "instagram",
+  "signal",
+  "discord",
+];
+
 export default function AddPlatforms() {
   const [search, setSearch] = useState("");
   const [addingAccount, setAddingAccount] = useState<{ id: number; name: string } | null>(null);
@@ -86,6 +96,94 @@ export default function AddPlatforms() {
   // Group by category
   const categories = Array.from(new Set(filteredPlatforms?.map(p => p.category) || []));
 
+  // Top messenger apps surfaced at the top of the page (hidden while searching)
+  const popularPlatforms = POPULAR_MESSENGER_SLUGS
+    .map(slug => platforms?.find(p => p.slug === slug))
+    .filter((p): p is NonNullable<typeof p> => p != null);
+
+  const renderPlatformCard = (platform: NonNullable<typeof platforms>[number]) => {
+    const entries = getActiveEntries(platform.id);
+    const added = entries.length > 0;
+    const isMutating = addPlatform.isPending || removePlatform.isPending;
+
+    return (
+      <div
+        key={platform.id}
+        className="bg-card border border-border hover:border-muted-foreground/30 rounded-2xl p-5 flex items-start gap-4 transition-all hover:-translate-y-1 hover:shadow-lg group"
+      >
+        <PlatformIcon
+          name={platform.name}
+          color={platform.color}
+          iconUrl={platform.iconUrl}
+          className="w-14 h-14 shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-foreground text-lg truncate">{platform.name}</h3>
+            {platform.embedsInIframe === false && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium shrink-0"
+                title="This platform blocks embedding — it will open in a new browser tab."
+              >
+                <ExternalLink className="w-2.5 h-2.5" />
+                New tab
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{platform.description}</p>
+          {/* Account labels for existing entries */}
+          {entries.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {entries.map((up) => (
+                <span key={up.id} className="inline-flex items-center gap-1 text-[11px] bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] px-2 py-0.5 rounded-full">
+                  {up.displayName ?? platform.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5 shrink-0">
+          {added ? (
+            <>
+              {/* Remove first account */}
+              <Button
+                size="icon"
+                variant="secondary"
+                className="bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] hover:bg-red-100 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-all"
+                onClick={() => handleRemoveFirst(platform.id)}
+                disabled={isMutating}
+                title="Remove account"
+              >
+                <Check className="w-5 h-5" />
+              </Button>
+              {/* Add another account */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-muted-foreground hover:text-[#dc2350] hover:bg-[#fff0f3] dark:hover:bg-[#1a0a10] rounded-xl transition-all"
+                onClick={() => openAddAccountDialog(platform.id, platform.name)}
+                disabled={isMutating}
+                title="Add another account"
+              >
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="icon"
+              variant="default"
+              className="bg-secondary text-foreground hover:bg-[#dc2350] hover:text-white rounded-xl transition-all"
+              onClick={() => handleAdd(platform.id)}
+              disabled={isMutating}
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AppLayout>
       <div className="h-full flex flex-col bg-background overflow-y-auto hide-scrollbar p-6 lg:p-10">
@@ -125,6 +223,16 @@ export default function AddPlatforms() {
             </div>
           ) : (
             <div className="space-y-12">
+              {/* Popular — top messenger apps, hidden while searching */}
+              {!search.trim() && popularPlatforms.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground mb-6">Popular</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {popularPlatforms.map(renderPlatformCard)}
+                  </div>
+                </div>
+              )}
+
               {categories.map(category => {
                 const categoryPlatforms = filteredPlatforms?.filter(p => p.category === category) || [];
                 if (categoryPlatforms.length === 0) return null;
@@ -133,88 +241,7 @@ export default function AddPlatforms() {
                   <div key={category}>
                     <h2 className="text-xl font-semibold text-foreground mb-6 capitalize">{category}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {categoryPlatforms.map(platform => {
-                        const entries = getActiveEntries(platform.id);
-                        const added = entries.length > 0;
-                        const isMutating = addPlatform.isPending || removePlatform.isPending;
-
-                        return (
-                          <div
-                            key={platform.id}
-                            className="bg-card border border-border hover:border-muted-foreground/30 rounded-2xl p-5 flex items-start gap-4 transition-all hover:-translate-y-1 hover:shadow-lg group"
-                          >
-                            <PlatformIcon
-                              name={platform.name}
-                              color={platform.color}
-                              iconUrl={platform.iconUrl}
-                              className="w-14 h-14 shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-foreground text-lg truncate">{platform.name}</h3>
-                                {platform.embedsInIframe === false && (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium shrink-0"
-                                    title="This platform blocks embedding — it will open in a new browser tab."
-                                  >
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                    New tab
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{platform.description}</p>
-                              {/* Account labels for existing entries */}
-                              {entries.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {entries.map((up) => (
-                                    <span key={up.id} className="inline-flex items-center gap-1 text-[11px] bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] px-2 py-0.5 rounded-full">
-                                      {up.displayName ?? platform.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1.5 shrink-0">
-                              {added ? (
-                                <>
-                                  {/* Remove first account */}
-                                  <Button
-                                    size="icon"
-                                    variant="secondary"
-                                    className="bg-green-100 dark:bg-[#1a2e1e] text-green-600 dark:text-[#4ade80] hover:bg-red-100 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-all"
-                                    onClick={() => handleRemoveFirst(platform.id)}
-                                    disabled={isMutating}
-                                    title="Remove account"
-                                  >
-                                    <Check className="w-5 h-5" />
-                                  </Button>
-                                  {/* Add another account */}
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-muted-foreground hover:text-[#dc2350] hover:bg-[#fff0f3] dark:hover:bg-[#1a0a10] rounded-xl transition-all"
-                                    onClick={() => openAddAccountDialog(platform.id, platform.name)}
-                                    disabled={isMutating}
-                                    title="Add another account"
-                                  >
-                                    <UserPlus className="w-4 h-4" />
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button
-                                  size="icon"
-                                  variant="default"
-                                  className="bg-secondary text-foreground hover:bg-[#dc2350] hover:text-white rounded-xl transition-all"
-                                  onClick={() => handleAdd(platform.id)}
-                                  disabled={isMutating}
-                                >
-                                  <Plus className="w-5 h-5" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {categoryPlatforms.map(renderPlatformCard)}
                     </div>
                   </div>
                 );

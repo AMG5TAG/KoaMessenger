@@ -6,6 +6,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 
 import { Toaster } from "@/components/ui/toaster";
+import { PlatformPanesLayer } from "@/components/platform-panes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
@@ -217,6 +218,9 @@ function ClerkProviderWithRoutes() {
     >
       <ClerkQueryClientCacheInvalidator />
       <AppRouter />
+      {/* Persistent platform iframes/webviews — mounted outside the router so
+          they survive page navigation instead of reloading on every visit. */}
+      <PlatformPanesLayer />
     </ClerkProvider>
   );
 }

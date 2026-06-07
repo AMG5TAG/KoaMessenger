@@ -134,19 +134,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Logo — on macOS the traffic-light buttons sit at y≈9–23px (centre y=16).
-          We use a fixed 56px (h-14) title-bar zone so the icon renders below them
-          with comfortable clearance, while the full zone stays draggable. */}
+      {/* Logo — on macOS the traffic-light buttons sit at y≈16–28px
+          (trafficLightPosition x:16 y:16 in the desktop main process).
+          The title-bar zone is 76px tall with 26px top padding so the 40px logo
+          renders at y≈31, clear of the buttons, with a few px of clearance above
+          the bottom border. The full zone stays draggable. */}
       <div
         className={`flex items-center justify-center border-b border-sidebar-border shrink-0 ${
-          desktop ? "h-14" : "h-16"
+          desktop ? "h-[76px] pt-[26px]" : "h-16"
         }`}
         style={desktop ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
       >
-        <div
-          className={desktop ? "mt-5" : ""}
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-        >
+        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <Link href="/dashboard">
             <img
               src={newAppIconPng}
