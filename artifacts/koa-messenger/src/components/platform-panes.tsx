@@ -225,7 +225,19 @@ function PanesHost() {
   return (
     <div
       className="fixed left-0 right-0 bottom-0 top-16 md:left-20 md:top-0 z-30"
-      style={{ pointerEvents: "none" }}
+      style={{
+        pointerEvents: "none",
+        // When NOT on the dashboard, slide the whole pane layer off-screen.
+        // The panes stay MOUNTED (so preloaded sessions and unread-count
+        // monitoring keep running) but no longer overlap the page underneath.
+        // This is required because Electron <webview> elements render in a
+        // native compositor layer that can swallow clicks meant for the React
+        // UI beneath them (Add Platforms / Settings / Home) even when they're
+        // CSS-hidden via visibility:hidden + pointer-events:none. Off-screen is
+        // the only reliable way to take them out of the hit-test path without
+        // display:none/unmount, both of which would detach and reload them.
+        transform: isDashboard ? undefined : "translateX(-200vw)",
+      }}
     >
       {/* Render ALL visited platforms — only the active one is visible.
           Keeping them mounted means webviews stay alive for title / notification monitoring. */}
