@@ -119,8 +119,13 @@ function hardenShellSession() {
 }
 
 const hardenedSessions = new WeakSet<Electron.Session>();
+// Names of every per-account partition we've touched this run. Needed because
+// Electron offers no way to enumerate live sessions, and we must flush each
+// account's cookie store to disk before quit (see flushAllSessions).
+const knownPartitions = new Set<string>();
 function ensurePartitionHardened(partition: string | undefined) {
   if (!partition || !partition.startsWith("persist:koa-up")) return;
+  knownPartitions.add(partition);
   const ses = session.fromPartition(partition);
   if (hardenedSessions.has(ses)) return;
   hardenedSessions.add(ses);
@@ -562,8 +567,45 @@ function installWebviewHardening() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Cookie/session persistence
+ *
+ * Chromium writes cookies to disk lazily (batched, every ~30s + on graceful
+ * session teardown). When a user logs into SEVERAL accounts and then quits
+ * quickly (Cmd+Q), the most-recently-set auth cookies across those per-account
+ * partitions can be lost — the user comes back signed out of the accounts they
+ * added last. flushAllSessions() forces every known partition's cookie store to
+ * disk. We run it periodically (so a force-quit/crash still keeps recent state)
+ * and, critically, awaited on `before-quit`.
+ * ────────────────────────────────────────────────────────────────────── */
+async function flushAllSessions() {
+  const partitions = ["persist:koa-shell", ...knownPartitions];
+  await Promise.allSettled(
+    partitions.map((p) => {
+      try {
+        return session.fromPartition(p).cookies.flushStore();
+      } catch {
+        return Promise.resolve();
+      }
+    }),
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Lifecycle
  * ────────────────────────────────────────────────────────────────────── */
+
+// Flush cookie stores before the app actually quits. We defer the quit once,
+// run the flush, then quit for real — otherwise the process can exit before
+// Chromium has written the latest cookies to disk.
+let isQuittingAfterFlush = false;
+app.on("before-quit", (event) => {
+  if (isQuittingAfterFlush) return;
+  event.preventDefault();
+  flushAllSessions().finally(() => {
+    isQuittingAfterFlush = true;
+    app.quit();
+  });
+});
 
 app.on("second-instance", () => {
   // Someone tried to run a second instance — focus our window instead
@@ -592,6 +634,13 @@ app.whenReady().then(async () => {
   }
 
   mainWindow = createMainWindow();
+
+  // Periodic safety flush so a crash / force-quit (which skips before-quit)
+  // still leaves recently-added account logins on disk. unref() so this timer
+  // never keeps the app alive on its own.
+  setInterval(() => {
+    void flushAllSessions();
+  }, 30_000).unref();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

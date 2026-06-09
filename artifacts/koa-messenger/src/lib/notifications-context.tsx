@@ -61,9 +61,21 @@ function maybeSendNativeNotification(
 ) {
   const key = `${upId}-${tabId}`;
   const previous = lastNotified.get(key) ?? 0;
+
+  // A zero/blank count is almost always the platform BLINKING its tab title
+  // (e.g. WhatsApp/Messenger alternate "(1) App" ⇄ "App" once a second to grab
+  // attention) — NOT a genuine "all read" signal. If we let that transient 0
+  // lower the high-water mark, the very next blink back to "(1)" looks like a
+  // brand-new message (count 1 > previous 0) and re-fires the banner, looping
+  // for as long as the message stays unread. So ignore it entirely and DON'T
+  // touch lastNotified. The real "read" reset is handled by clearCount() when
+  // the user opens the pane.
+  if (count <= 0) return;
+
+  // Only now (a real, positive count) do we update the baseline.
   lastNotified.set(key, count);
 
-  if (!isDesktop() || count <= 0 || count <= previous) return;
+  if (!isDesktop() || count <= previous) return;
 
   const desktop = window.koaDesktop;
   if (!desktop?.sendNotification) return;

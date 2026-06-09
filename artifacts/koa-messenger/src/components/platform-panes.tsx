@@ -33,6 +33,11 @@ import { ToastAction } from "@/components/ui/toast";
 type Tab = { id: string; createdAt: number };
 
 const TAB_STORAGE_KEY = "km_platform_tabs_v4";
+// Last-known value of the server-side `syncAccounts` flag. The webview partition
+// string is derived from it, so if a launch can't reach /api/users/me we must
+// fall back to this rather than a hardcoded default — otherwise the partition
+// flips and every embedded account looks signed out.
+const SYNC_PREF_KEY = "km_sync_accounts_v1";
 
 function loadTabsForUp(upId: number): Tab[] {
   try {
@@ -44,6 +49,32 @@ function loadTabsForUp(upId: number): Tab[] {
       : [{ id: `${upId}-t1`, createdAt: Date.now() }];
   } catch {
     return [{ id: `${upId}-t1`, createdAt: Date.now() }];
+  }
+}
+
+/**
+ * Persist the tab list for a platform so tabs (and therefore their session
+ * partitions / logins) survive an app restart. loadTabsForUp() reads this back;
+ * without a writer it always fell through to a single default tab and any
+ * additional account tab was orphaned on the next launch.
+ */
+function saveTabsForUp(upId: number, tabs: Tab[]) {
+  try {
+    const raw = localStorage.getItem(TAB_STORAGE_KEY);
+    const data = raw ? (JSON.parse(raw) as Record<string, Tab[]>) : {};
+    data[String(upId)] = tabs;
+    localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // storage unavailable / quota — non-fatal, tabs just won't persist
+  }
+}
+
+function readSyncPref(): boolean {
+  try {
+    // default true (matches the server default) when nothing stored yet
+    return localStorage.getItem(SYNC_PREF_KEY) !== "false";
+  } catch {
+    return true;
   }
 }
 
@@ -74,10 +105,24 @@ function PanesHost() {
   const { data: userPlatforms } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
-  const { data: me, isLoading: meLoading } = useGetMe({
+  const { data: me, isLoading: meLoading, isError: meError } = useGetMe({
     query: { queryKey: ["/api/users/me"] },
   });
-  const syncOn = me?.syncAccounts !== false; // default true
+  // Derive syncOn from the server value when we have it, otherwise fall back to
+  // the last-known persisted value (NOT a hardcoded default) so an offline
+  // launch doesn't flip the partition and sign every account out.
+  const syncOn = me ? me.syncAccounts !== false : readSyncPref();
+
+  // Remember the server's syncAccounts whenever we get a fresh value.
+  useEffect(() => {
+    if (me && typeof me.syncAccounts === "boolean") {
+      try {
+        localStorage.setItem(SYNC_PREF_KEY, String(me.syncAccounts));
+      } catch {
+        // non-fatal
+      }
+    }
+  }, [me]);
 
   // Navigate to platform when user clicks a native macOS notification banner
   useDesktopNotificationClick((upId) => setLocation(`/dashboard?up=${upId}`));
@@ -100,6 +145,14 @@ function PanesHost() {
       return { ...prev, [activeUpId]: { tabs, activeTabId: tabs[0]?.id ?? "" } };
     });
   }, [activeUpId]);
+
+  // Persist tab lists whenever they change so each tab's session partition
+  // (and the account logged in there) is re-attached on the next launch.
+  useEffect(() => {
+    for (const [upId, state] of Object.entries(platformTabs)) {
+      saveTabsForUp(Number(upId), state.tabs);
+    }
+  }, [platformTabs]);
 
   // Drop notification state for platforms the user has removed — otherwise their
   // unread counts keep inflating the dock badge and lastNotified entries leak.
@@ -142,8 +195,10 @@ function PanesHost() {
 
   // Wait for the user record before mounting any pane: syncAccounts is part of
   // the desktop webview partition string, and flipping it after mount would
-  // change the partition and force a reload of every webview.
-  if (meLoading) return null;
+  // change the partition and force a reload of every webview. If the fetch
+  // FAILED (offline), don't block the UI forever — fall through using the
+  // persisted syncAccounts value from readSyncPref().
+  if (meLoading && !meError) return null;
 
   return (
     <div
