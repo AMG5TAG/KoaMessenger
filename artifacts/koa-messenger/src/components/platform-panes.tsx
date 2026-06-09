@@ -127,24 +127,46 @@ function PanesHost() {
   // Navigate to platform when user clicks a native macOS notification banner
   useDesktopNotificationClick((upId) => setLocation(`/dashboard?up=${upId}`));
 
-  // ── Sticky visited platforms: once loaded, never unmount ──────────────────
-  // Both visitedUpIds and platformTabs are updated in the SAME effect so React
-  // batches them into a single re-render.  If they were separate effects the
-  // component would render null between the two updates (visitedUpIds has the
-  // platform but platformTabs doesn't yet), which destroys and recreates the
-  // iframe, causing a full reload on every navigation.
+  // ── Sticky platforms: once mounted, never unmount ─────────────────────────
   const [visitedUpIds, setVisitedUpIds] = useState<number[]>([]);
   const [platformTabs, setPlatformTabs] = useState<Record<number, PlatformTabState>>({});
 
-  useEffect(() => {
-    if (!activeUpId) return;
-    setVisitedUpIds((prev) => (prev.includes(activeUpId) ? prev : [...prev, activeUpId]));
+  // Mount a platform's panes (kept hidden until it's the active one). Updates
+  // visitedUpIds and platformTabs together so React batches them into a SINGLE
+  // render — splitting them would render null in between (visitedUpIds has the
+  // platform but platformTabs doesn't yet), detaching and reloading the webview.
+  const ensurePaneMounted = useCallback((upId: number) => {
+    setVisitedUpIds((prev) => (prev.includes(upId) ? prev : [...prev, upId]));
     setPlatformTabs((prev) => {
-      if (prev[activeUpId]) return prev; // already initialised
-      const tabs = loadTabsForUp(activeUpId);
-      return { ...prev, [activeUpId]: { tabs, activeTabId: tabs[0]?.id ?? "" } };
+      if (prev[upId]) return prev; // already initialised
+      const tabs = loadTabsForUp(upId);
+      return { ...prev, [upId]: { tabs, activeTabId: tabs[0]?.id ?? "" } };
     });
-  }, [activeUpId]);
+  }, []);
+
+  // Mount the active platform immediately when navigated to (covers a click that
+  // beats the staggered preload below, and platforms added during the session).
+  useEffect(() => {
+    if (activeUpId) ensurePaneMounted(activeUpId);
+  }, [activeUpId, ensurePaneMounted]);
+
+  // Preload ALL connected accounts on launch so they're already loaded — and
+  // monitored for unread counts — by the time the user clicks one. Mounting is
+  // staggered rather than all-at-once: spawning every webview simultaneously on
+  // macOS can starve the GPU/renderer and trigger the black-webview / crash
+  // failure modes the panes guard against further down. Each account is
+  // scheduled once; refetches of userPlatforms won't re-warm already-scheduled
+  // ones, and newly added accounts get warmed too.
+  const scheduledPreloadRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!userPlatforms) return;
+    let order = 0;
+    for (const up of userPlatforms) {
+      if (scheduledPreloadRef.current.has(up.id)) continue;
+      scheduledPreloadRef.current.add(up.id);
+      setTimeout(() => ensurePaneMounted(up.id), order++ * 500);
+    }
+  }, [userPlatforms, ensurePaneMounted]);
 
   // Persist tab lists whenever they change so each tab's session partition
   // (and the account logged in there) is re-attached on the next launch.
