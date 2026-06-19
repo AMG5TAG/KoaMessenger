@@ -184,8 +184,13 @@ function PanesHost() {
   }, [userPlatforms, pruneCounts]);
 
   // ── Toast when an INACTIVE platform gets a new message ───────────────────
+  // Browser-only: on desktop, maybeSendNativeNotification already raises a
+  // native OS banner for the same count increase, so also firing this in-app
+  // toast produced TWO popups for one message (native top-right + toast
+  // bottom-right). The native banner is the desktop path; this toast is the
+  // fallback for the web build, which has no OS notifier.
   useEffect(() => {
-    if (!userPlatforms) return;
+    if (!userPlatforms || isDesktop()) return;
     for (const up of userPlatforms) {
       if (up.id === activeUpId) {
         // Just update previous so switching away doesn't fire a stale toast
@@ -322,6 +327,11 @@ function PlatformPane({
   const desktop = isDesktop();
   const { setCount, clearCount } = useNotifications();
   const notifyMeta = { name: platform.name, tabLabel };
+  // Webview listeners are attached once (the callback below is memoized), so the
+  // `active` prop would otherwise be captured stale inside them. Read it through
+  // a ref so title syncs always see whether this pane is currently in view.
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const blocked = !desktop && platform.embedsInIframe === false;
   const isNativeOnly = platform.url.includes("apple.com/messages");
   const [loading, setLoading] = useState(!blocked && !isNativeOnly);
@@ -350,7 +360,7 @@ function PlatformPane({
           // executeJavaScript gives us the live title even without a title-changed event
           const title: string = await wv.executeJavaScript("document.title");
           const count = parseUnreadFromTitle(title);
-          setCount(upId, tabId, count, notifyMeta);
+          setCount(upId, tabId, count, notifyMeta, activeRef.current);
         } catch {
           // webview not ready yet — ignore
         }
@@ -380,7 +390,7 @@ function PlatformPane({
       const onTitleUpdate = (e: Event) => {
         const title = (e as unknown as { title: string }).title ?? "";
         const count = parseUnreadFromTitle(title);
-        setCount(upId, tabId, count, notifyMeta);
+        setCount(upId, tabId, count, notifyMeta, activeRef.current);
       };
       // When the webview's render process crashes (the #1 cause of a black
       // webview area on macOS — happens with heavy SPAs, OOM, GPU issues),
