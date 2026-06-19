@@ -738,14 +738,14 @@ export const platformSeed: InsertPlatform[] = [
   {
     "name": "Meta Business Suite",
     "slug": "meta-business-suite",
-    "url": "https://business.facebook.com/latest/inbox/chat",
+    "url": "https://business.facebook.com/latest/inbox/all",
     "category": "Work",
     "color": "#1877F2",
     "description": "Meta Business Suite messenger — manage customer conversations across Facebook, Instagram and Messenger in one inbox.",
     "iconUrl": null,
     "isPopular": false,
-    "embedsInIframe": true,
-    "iframeNotes": null
+    "embedsInIframe": false,
+    "iframeNotes": "This platform blocks iframe embedding for security. It will open in a new browser tab instead."
   },
   {
     "name": "Google Messages",
