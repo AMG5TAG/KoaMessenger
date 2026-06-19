@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -9,6 +9,8 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import { corsOptions } from "./middlewares/corsOptions";
+import { securityHeaders } from "./middlewares/securityHeaders";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -35,7 +37,8 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+app.use(securityHeaders);
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,5 +52,15 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Catch-all error handler — ensures anything thrown outside a route's own
+// try/catch returns a generic 500 instead of falling through to Express's
+// default handler, which leaks stack traces to the client in non-production.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  req.log?.error({ err }, "Unhandled error");
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Internal server error" });
+});
 
 export default app;

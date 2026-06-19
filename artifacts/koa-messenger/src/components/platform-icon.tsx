@@ -15,21 +15,24 @@ import {
   SiWire, SiKeybase,
   SiGroupme, SiPushbullet, SiCircle, SiTuta,
   SiWorkplace, SiMeta,
+  SiGooglechat, SiGooglemessages, SiSession,
 } from "react-icons/si";
 import {
-  FaFacebook, FaFacebookMessenger, FaSkype, FaViber,
+  FaFacebook, FaFacebookMessenger, FaViber,
   FaTwitter, FaQq, FaWeixin, FaLinkedin,
   FaLine, FaDiscord, FaMicrosoft, FaApple,
-  FaYahoo, FaGoogle, FaEnvelope, FaEnvelopeOpen,
+  FaYahoo, FaGoogle, FaEnvelope,
   FaComment, FaComments, FaPhone, FaVideo,
   FaShieldAlt, FaUsers, FaCommentDots,
-  FaCommentAlt, FaSms, FaPaperPlane, FaInternetExplorer,
+  FaCommentAlt, FaPaperPlane, FaInternetExplorer,
 } from "react-icons/fa";
+import { PiMicrosoftOutlookLogoFill } from "react-icons/pi";
+import { AiOutlineDingtalk } from "react-icons/ai";
 import {
   BsEnvelopeFill, BsEnvelopeOpenFill, BsChatDotsFill,
   BsChatLeftTextFill, BsPeopleFill, BsPhoneFill,
   BsChatHeartFill, BsShieldFill, BsCameraVideoFill,
-  BsChatSquareFill, BsMicrosoftTeams,
+  BsMicrosoftTeams,
 } from "react-icons/bs";
 import {
   IoMail, IoMailOpen, IoMailUnread, IoCall,
@@ -67,10 +70,9 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   signal: <SiSignal className="w-full h-full" />,
   "microsoft teams": <BsMicrosoftTeams className="w-full h-full" />,
   teams: <BsMicrosoftTeams className="w-full h-full" />,
-  "google chat": <SiGoogle className="w-full h-full" />,
+  "google chat": <SiGooglechat className="w-full h-full" />,
   wechat: <SiWechat className="w-full h-full" />,
   weixin: <SiWechat className="w-full h-full" />,
-  skype: <FaSkype className="w-full h-full" />,
   viber: <FaViber className="w-full h-full" />,
   line: <SiLine className="w-full h-full" />,
   kakao: <SiKakaotalk className="w-full h-full" />,
@@ -100,13 +102,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   bluesky: <SiBluesky className="w-full h-full" />,
   "workplace by meta": <SiWorkplace className="w-full h-full" />,
   workplace: <SiWorkplace className="w-full h-full" />,
+  "meta business suite": <SiMeta className="w-full h-full" />,
   "meta business chat": <SiMeta className="w-full h-full" />,
   vk: <SiVk className="w-full h-full" />,
 
   /* ── email ── */
   gmail: <SiGmail className="w-full h-full" />,
   protonmail: <SiProtonmail className="w-full h-full" />,
-  outlook: <FaEnvelopeOpen className="w-full h-full" />,
+  outlook: <PiMicrosoftOutlookLogoFill className="w-full h-full" />,
   fastmail: <BsEnvelopeFill className="w-full h-full" />,
   "tuta mail": <SiTuta className="w-full h-full" />,
   tuta: <SiTuta className="w-full h-full" />,
@@ -138,21 +141,21 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   threema: <SiThreema className="w-full h-full" />,
   wire: <SiWire className="w-full h-full" />,
   keybase: <SiKeybase className="w-full h-full" />,
-  session: <FaShieldAlt className="w-full h-full" />,
+  session: <SiSession className="w-full h-full" />,
   status: <FaShieldAlt className="w-full h-full" />,
   briar: <FaShieldAlt className="w-full h-full" />,
   tox: <FaCommentAlt className="w-full h-full" />,
   jami: <FaPhone className="w-full h-full" />,
 
   /* ── misc / lesser known ── */
-  dingtalk: <BsChatSquareFill className="w-full h-full" />,
+  dingtalk: <AiOutlineDingtalk className="w-full h-full" />,
   "google voice": <FcPhone className="w-full h-full" />,
   groupme: <SiGroupme className="w-full h-full" />,
   "steam chat": <SiSteam className="w-full h-full" />,
   steam: <SiSteam className="w-full h-full" />,
   icloud: <SiApple className="w-full h-full" />,
-  "google messages": <FaSms className="w-full h-full" />,
-  "google-messages": <FaSms className="w-full h-full" />,
+  "google messages": <SiGooglemessages className="w-full h-full" />,
+  "google-messages": <SiGooglemessages className="w-full h-full" />,
   pushbullet: <SiPushbullet className="w-full h-full" />,
   circle: <SiCircle className="w-full h-full" />,
   flock: <BsPeopleFill className="w-full h-full" />,
@@ -222,10 +225,15 @@ export function PlatformIcon(props: PlatformIconProps) {
 
   const textColor = isLightBg(color) ? "#111" : "#fff";
 
+  // Subtle inset ring so tiles keep definition against both themes —
+  // without it, black tiles (Notion, Threads, Wire) vanish on the dark
+  // background and Snapchat's yellow washes out on white.
+  const tileRing = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
+
   if (iconUrl) {
     return (
       <div
-        className={`flex items-center justify-center rounded-xl overflow-hidden ${combinedClass}`}
+        className={`flex items-center justify-center rounded-xl overflow-hidden ${tileRing} ${combinedClass}`}
         style={{ backgroundColor: color }}
       >
         <img src={iconUrl} alt={name} className="w-3/5 h-3/5 object-contain" />
@@ -235,7 +243,7 @@ export function PlatformIcon(props: PlatformIconProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded-xl overflow-hidden ${combinedClass}`}
+      className={`flex items-center justify-center rounded-xl overflow-hidden ${tileRing} ${combinedClass}`}
       style={{ backgroundColor: color, color: textColor }}
     >
       {icon ? (

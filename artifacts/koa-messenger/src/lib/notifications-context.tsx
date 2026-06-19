@@ -34,7 +34,14 @@ interface NotifyMeta {
 
 interface NotificationContextValue {
   counts: Record<number, number>; // upId -> total across all tabs
-  setCount: (upId: number, tabId: string, count: number, meta?: NotifyMeta) => void;
+  setCount: (
+    upId: number,
+    tabId: string,
+    count: number,
+    meta?: NotifyMeta,
+    /** True when this pane is the one the user is currently viewing. */
+    active?: boolean,
+  ) => void;
   clearCount: (upId: number) => void;
   /** Drop all state for a single tab (e.g. when the user closes it). */
   removeCount: (upId: number, tabId: string) => void;
@@ -50,20 +57,88 @@ const NotificationContext = createContext<NotificationContextValue>({
   pruneCounts: () => {},
 });
 
-/** Last count we notified for per (upId, tabId) to avoid spamming. */
-const lastNotified = new Map<string, number>();
+/**
+ * Last count we notified for per (upId, tabId), to avoid spamming.
+ *
+ * Persisted to localStorage so it survives an app restart: without it, every
+ * launch starts blank, the preload re-reads each webview's title, and a
+ * pre-existing "(1)" looks brand-new (count 1 > previous 0) — re-notifying for
+ * messages the user has already been told about, on every launch. With the
+ * baseline restored, an already-seen unread is silent, while a count that grew
+ * WHILE THE APP WAS CLOSED (e.g. 1 → 2) still notifies for the difference.
+ */
+const LAST_NOTIFIED_KEY = "km_last_notified_v1";
+
+function loadLastNotified(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(LAST_NOTIFIED_KEY);
+    if (!raw) return new Map();
+    const data = JSON.parse(raw) as Record<string, number>;
+    return new Map(
+      Object.entries(data).filter(
+        ([, v]) => typeof v === "number" && v > 0,
+      ),
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+const lastNotified = loadLastNotified();
+
+function persistLastNotified() {
+  try {
+    localStorage.setItem(
+      LAST_NOTIFIED_KEY,
+      JSON.stringify(Object.fromEntries(lastNotified)),
+    );
+  } catch {
+    // storage unavailable / quota — non-fatal, baselines just won't persist
+  }
+}
 
 function maybeSendNativeNotification(
   upId: number,
   tabId: string,
   count: number,
   meta?: NotifyMeta,
+  active?: boolean,
 ) {
   const key = `${upId}-${tabId}`;
   const previous = lastNotified.get(key) ?? 0;
-  lastNotified.set(key, count);
 
-  if (!isDesktop() || count <= 0 || count <= previous) return;
+  // FOREGROUND pane (the user is currently looking at it). Everything in it is
+  // already "seen", so never raise a banner for it — and track the baseline all
+  // the way down to 0 as the messages are read. This down-tracking is what
+  // resets the high-water mark after a read: without it the baseline stayed
+  // stuck at the last unread count, so the NEXT genuinely-new message of the
+  // same (or lower) count — e.g. a fresh "(1)" after you'd read the previous
+  // one — was silently dropped.
+  if (active) {
+    if (previous !== count) {
+      lastNotified.set(key, count);
+      persistLastNotified();
+    }
+    return;
+  }
+
+  // BACKGROUND pane. A zero/blank count here is almost always the platform
+  // BLINKING its tab title (e.g. WhatsApp/Messenger alternate "(1) App" ⇄ "App"
+  // once a second to grab attention) — NOT a genuine "all read" signal (real
+  // reads are caught by the foreground branch above). If we let that transient
+  // 0 lower the high-water mark, the very next blink back to "(1)" looks like a
+  // brand-new message (count 1 > previous 0) and re-fires the banner, looping
+  // for as long as the message stays unread. So ignore it entirely and DON'T
+  // touch lastNotified.
+  if (count <= 0) return;
+
+  // Only now (a real, positive count) do we update the baseline.
+  if (previous !== count) {
+    lastNotified.set(key, count);
+    persistLastNotified();
+  }
+
+  if (!isDesktop() || count <= previous) return;
 
   const desktop = window.koaDesktop;
   if (!desktop?.sendNotification) return;
@@ -96,17 +171,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   tabCountsRef.current = tabCounts;
 
   const setCount = useCallback(
-    (upId: number, tabId: string, count: number, meta?: NotifyMeta) => {
+    (
+      upId: number,
+      tabId: string,
+      count: number,
+      meta?: NotifyMeta,
+      active?: boolean,
+    ) => {
       const key = `${upId}-${tabId}`;
       dispatch({ type: "set", key, count });
-      maybeSendNativeNotification(upId, tabId, count, meta);
+      maybeSendNativeNotification(upId, tabId, count, meta, active);
     },
     [],
   );
 
   const removeCount = useCallback((upId: number, tabId: string) => {
     const key = `${upId}-${tabId}`;
-    lastNotified.delete(key);
+    if (lastNotified.delete(key)) persistLastNotified();
     dispatch({ type: "remove", keys: [key] });
   }, []);
 
@@ -116,29 +197,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const upId = parseInt(key.split("-")[0]);
       return !isNaN(upId) && !valid.has(upId);
     };
+    let removedAny = false;
     for (const key of Array.from(lastNotified.keys())) {
-      if (isStale(key)) lastNotified.delete(key);
+      if (isStale(key)) removedAny = lastNotified.delete(key) || removedAny;
     }
+    if (removedAny) persistLastNotified();
     const staleKeys = Object.keys(tabCountsRef.current).filter(isStale);
     if (staleKeys.length > 0) dispatch({ type: "remove", keys: staleKeys });
   }, []);
 
   const clearCount = useCallback((upId: number) => {
     const prefix = `${upId}-`;
+    // Clear the unread badge as soon as the user opens the platform. The
+    // notification baseline (lastNotified) is NOT touched here — it's managed by
+    // maybeSendNativeNotification's foreground branch, which tracks the count
+    // down to 0 as the messages are actually read. (Forcing it to 0 here instead
+    // re-fired a banner, because the webview title still shows the old unread
+    // count for a moment after opening, before the messages are marked read.)
     Object.keys(tabCountsRef.current).forEach((key) => {
-      if (key.startsWith(prefix)) {
-        dispatch({ type: "set", key, count: 0 });
-        // Preserve lastNotified at the current count rather than resetting to 0.
-        // Resetting to 0 caused a notification loop: the webview title still shows
-        // the old unread count after the user opens the platform (the messages
-        // haven't been read yet), so the next page-title-updated / syncTitle call
-        // would see count > 0 > previous and fire another notification banner.
-        // By keeping lastNotified at the current count, duplicate banners are
-        // suppressed. When the user actually reads the messages, the webview title
-        // clears (count drops to 0), maybeSendNativeNotification updates
-        // lastNotified to 0, and the next genuinely new message will notify again.
-        lastNotified.set(key, tabCountsRef.current[key] ?? 0);
-      }
+      if (key.startsWith(prefix)) dispatch({ type: "set", key, count: 0 });
     });
   }, []);
 

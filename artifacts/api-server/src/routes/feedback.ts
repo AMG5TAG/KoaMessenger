@@ -7,12 +7,38 @@ import { validateBody } from "../middlewares/validate";
 
 const router = Router();
 
+/**
+ * Strip the author's Clerk user ID (PII) from a feedback row before it leaves
+ * the server. feedbackTable.userId must never be serialized to any client —
+ * not on the public list, and not to a user voting on someone else's item.
+ */
+function toPublicFeedback(
+  row: typeof feedbackTable.$inferSelect,
+  hasVoted: boolean,
+) {
+  const { userId: _userId, ...rest } = row;
+  return { ...rest, hasVoted };
+}
+
 router.get("/feedback", async (req, res) => {
   try {
     const userId = getUserId(req);
 
+    // Explicit column list — never select/return feedbackTable.userId, which
+    // holds the author's Clerk user ID (PII). This endpoint is public, so a
+    // SELECT * + row spread would leak every author's identity to anonymous
+    // callers. Keep this in sync with ListFeedbackResponseItem in the spec.
     const items = await db
-      .select()
+      .select({
+        id: feedbackTable.id,
+        type: feedbackTable.type,
+        title: feedbackTable.title,
+        description: feedbackTable.description,
+        platformName: feedbackTable.platformName,
+        votes: feedbackTable.votes,
+        status: feedbackTable.status,
+        createdAt: feedbackTable.createdAt,
+      })
       .from(feedbackTable)
       .orderBy(desc(feedbackTable.votes));
 
@@ -50,7 +76,7 @@ router.post("/feedback", requireAuth, validateBody(CreateFeedbackBody), async (r
       .values({ userId: req.userId, type, title, description, platformName: platformName ?? null })
       .returning();
 
-    return res.status(201).json({ ...item, hasVoted: false });
+    return res.status(201).json(toPublicFeedback(item, false));
   } catch (err) {
     req.log.error({ err }, "Failed to create feedback");
     return res.status(500).json({ error: "Failed to create feedback" });
@@ -77,7 +103,7 @@ router.post("/feedback/:id/vote", requireAuth, async (req: any, res) => {
         .set({ votes: Math.max(0, item.votes - 1) })
         .where(eq(feedbackTable.id, id))
         .returning();
-      return res.json({ ...updated, hasVoted: false });
+      return res.json(toPublicFeedback(updated, false));
     } else {
       await db.insert(feedbackVotesTable).values({ feedbackId: id, userId: req.userId });
       const [updated] = await db
@@ -85,7 +111,7 @@ router.post("/feedback/:id/vote", requireAuth, async (req: any, res) => {
         .set({ votes: item.votes + 1 })
         .where(eq(feedbackTable.id, id))
         .returning();
-      return res.json({ ...updated, hasVoted: true });
+      return res.json(toPublicFeedback(updated, true));
     }
   } catch (err) {
     req.log.error({ err }, "Failed to vote on feedback");
