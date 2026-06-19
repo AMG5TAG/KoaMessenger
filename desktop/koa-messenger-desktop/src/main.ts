@@ -86,8 +86,17 @@ function attachHeaderStripping(ses: Electron.Session) {
 // read whatever the user last copied (passwords, 2FA codes) with no gesture.
 // Normal Ctrl/Cmd-V paste and paste-image still work — those go through the
 // paste event, not this permission.
+//
+// `notifications` is intentionally NOT granted: if each embedded messenger
+// (WhatsApp/Messenger/etc.) could raise its own OS notification, the user would
+// get a native banner from the platform's Web Notifications API on every single
+// incoming message — on top of, and uncoordinated with, our own deduped
+// title-based notifier (see maybeSendNativeNotification). That double source is
+// why a single unread message kept re-notifying. We are the sole notifier: the
+// app derives unread counts from each webview's document.title (which the
+// platforms update regardless of this permission) and fires one deduped,
+// click-to-open banner + dock badge.
 const ALLOWED_PERMISSIONS = new Set([
-  "notifications",
   "media",
   "mediaKeySystem",
   "geolocation",

@@ -227,16 +227,22 @@ function PanesHost() {
       className="fixed left-0 right-0 bottom-0 top-16 md:left-20 md:top-0 z-30"
       style={{
         pointerEvents: "none",
-        // When NOT on the dashboard, slide the whole pane layer off-screen.
-        // The panes stay MOUNTED (so preloaded sessions and unread-count
-        // monitoring keep running) but no longer overlap the page underneath.
-        // This is required because Electron <webview> elements render in a
-        // native compositor layer that can swallow clicks meant for the React
-        // UI beneath them (Add Platforms / Settings / Home) even when they're
-        // CSS-hidden via visibility:hidden + pointer-events:none. Off-screen is
-        // the only reliable way to take them out of the hit-test path without
-        // display:none/unmount, both of which would detach and reload them.
-        transform: isDashboard ? undefined : "translateX(-200vw)",
+        // When NOT on the dashboard, push the whole pane layer off-screen so its
+        // webviews stop overlapping (and swallowing clicks meant for) the page
+        // underneath — Add Platforms / Settings / Feedback / Home. The panes stay
+        // MOUNTED so preloaded sessions and unread-count monitoring keep running.
+        //
+        // This MUST use a layout property (`left`), NOT a CSS `transform`.
+        // Electron <webview> guest content renders in a native compositor surface
+        // whose geometry tracks the element's LAYOUT box but ignores ancestor
+        // transforms — so the previous translateX(-200vw) moved the DOM box
+        // visually yet left the native surface (and its mouse-event capture)
+        // sitting over the content area, re-breaking those buttons on macOS.
+        // (display:none/unmount would also free the clicks but detaches and
+        // reloads every webview, defeating the preload.)
+        ...(isDashboard
+          ? null
+          : { left: "-200vw", right: "auto", width: "100vw" }),
       }}
     >
       {/* Render ALL visited platforms — only the active one is visible.
