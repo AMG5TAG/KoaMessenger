@@ -57,8 +57,45 @@ const NotificationContext = createContext<NotificationContextValue>({
   pruneCounts: () => {},
 });
 
-/** Last count we notified for per (upId, tabId) to avoid spamming. */
-const lastNotified = new Map<string, number>();
+/**
+ * Last count we notified for per (upId, tabId), to avoid spamming.
+ *
+ * Persisted to localStorage so it survives an app restart: without it, every
+ * launch starts blank, the preload re-reads each webview's title, and a
+ * pre-existing "(1)" looks brand-new (count 1 > previous 0) — re-notifying for
+ * messages the user has already been told about, on every launch. With the
+ * baseline restored, an already-seen unread is silent, while a count that grew
+ * WHILE THE APP WAS CLOSED (e.g. 1 → 2) still notifies for the difference.
+ */
+const LAST_NOTIFIED_KEY = "km_last_notified_v1";
+
+function loadLastNotified(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(LAST_NOTIFIED_KEY);
+    if (!raw) return new Map();
+    const data = JSON.parse(raw) as Record<string, number>;
+    return new Map(
+      Object.entries(data).filter(
+        ([, v]) => typeof v === "number" && v > 0,
+      ),
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+const lastNotified = loadLastNotified();
+
+function persistLastNotified() {
+  try {
+    localStorage.setItem(
+      LAST_NOTIFIED_KEY,
+      JSON.stringify(Object.fromEntries(lastNotified)),
+    );
+  } catch {
+    // storage unavailable / quota — non-fatal, baselines just won't persist
+  }
+}
 
 function maybeSendNativeNotification(
   upId: number,
@@ -78,7 +115,10 @@ function maybeSendNativeNotification(
   // same (or lower) count — e.g. a fresh "(1)" after you'd read the previous
   // one — was silently dropped.
   if (active) {
-    if (previous !== count) lastNotified.set(key, count);
+    if (previous !== count) {
+      lastNotified.set(key, count);
+      persistLastNotified();
+    }
     return;
   }
 
@@ -93,7 +133,10 @@ function maybeSendNativeNotification(
   if (count <= 0) return;
 
   // Only now (a real, positive count) do we update the baseline.
-  lastNotified.set(key, count);
+  if (previous !== count) {
+    lastNotified.set(key, count);
+    persistLastNotified();
+  }
 
   if (!isDesktop() || count <= previous) return;
 
@@ -144,7 +187,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const removeCount = useCallback((upId: number, tabId: string) => {
     const key = `${upId}-${tabId}`;
-    lastNotified.delete(key);
+    if (lastNotified.delete(key)) persistLastNotified();
     dispatch({ type: "remove", keys: [key] });
   }, []);
 
@@ -154,9 +197,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const upId = parseInt(key.split("-")[0]);
       return !isNaN(upId) && !valid.has(upId);
     };
+    let removedAny = false;
     for (const key of Array.from(lastNotified.keys())) {
-      if (isStale(key)) lastNotified.delete(key);
+      if (isStale(key)) removedAny = lastNotified.delete(key) || removedAny;
     }
+    if (removedAny) persistLastNotified();
     const staleKeys = Object.keys(tabCountsRef.current).filter(isStale);
     if (staleKeys.length > 0) dispatch({ type: "remove", keys: staleKeys });
   }, []);
