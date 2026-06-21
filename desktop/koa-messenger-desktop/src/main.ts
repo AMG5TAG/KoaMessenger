@@ -563,13 +563,45 @@ function installWebviewHardening() {
         }
       });
       guest.setWindowOpenHandler(({ url }) => {
+        let u: URL;
         try {
-          const u = new URL(url);
-          if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) shell.openExternal(url);
+          u = new URL(url);
         } catch {
-          /* ignore */
+          return { action: "deny" };
         }
-        return { action: "deny" };
+        // Non-web schemes (mailto:, tel:) hand off to the OS default app.
+        if (u.protocol !== "http:" && u.protocol !== "https:") {
+          if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
+            shell.openExternal(url).catch(() => {
+              /* ignore */
+            });
+          }
+          return { action: "deny" };
+        }
+        // http/https popups (Facebook/Meta OAuth login dialogs, "Continue with…"
+        // flows, etc.) MUST stay inside the app's session. Routing them to the
+        // external browser via shell.openExternal writes the auth cookie into
+        // Safari/Chrome rather than this platform's webview partition, so the
+        // embedded pane never becomes signed in (the Meta Business Suite
+        // "opens in a new browser window and never returns signed in" bug).
+        // Open them as a child window that shares this guest's session/partition
+        // — header stripping + permission handlers are already attached to that
+        // session by ensurePartitionHardened — so the login cookie lands where
+        // the embedded pane can see it. The popup self-closes (window.close /
+        // postMessage to opener) when the platform finishes auth.
+        return {
+          action: "allow",
+          overrideBrowserWindowOptions: {
+            autoHideMenuBar: true,
+            backgroundColor: "#0a0a0a",
+            webPreferences: {
+              contextIsolation: true,
+              nodeIntegration: false,
+              sandbox: true,
+              session: guest.session,
+            },
+          },
+        };
       });
     });
   });
