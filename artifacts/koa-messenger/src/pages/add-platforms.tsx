@@ -2,12 +2,12 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { useListPlatforms, useListUserPlatforms, useAddUserPlatform, useRemoveUserPlatform } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Check, Loader2, Info, ExternalLink, UserPlus, X } from "lucide-react";
+import { Search, Plus, Check, Loader2, Info, UserPlus, X } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { isDesktop } from "@/lib/desktop";
+import { isDesktop, isPlatformAvailable } from "@/lib/desktop";
 import {
   Dialog,
   DialogContent,
@@ -47,8 +47,12 @@ export default function AddPlatforms() {
   const isLoading = platformsLoading || userPlatformsLoading;
 
   const filteredPlatforms = platforms?.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+    // Platforms that can't be embedded in the browser are desktop-only — hide
+    // them from the web catalog so they can't be added there (see
+    // isPlatformAvailable).
+    isPlatformAvailable(p) &&
+    (p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   // Get all active entries for a platform (may be multiple accounts)
@@ -99,7 +103,7 @@ export default function AddPlatforms() {
   // Top messenger apps surfaced at the top of the page (hidden while searching)
   const popularPlatforms = POPULAR_MESSENGER_SLUGS
     .map(slug => platforms?.find(p => p.slug === slug))
-    .filter((p): p is NonNullable<typeof p> => p != null);
+    .filter((p): p is NonNullable<typeof p> => p != null && isPlatformAvailable(p));
 
   const renderPlatformCard = (platform: NonNullable<typeof platforms>[number]) => {
     const entries = getActiveEntries(platform.id);
@@ -120,15 +124,6 @@ export default function AddPlatforms() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground text-lg truncate">{platform.name}</h3>
-            {platform.embedsInIframe === false && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium shrink-0"
-                title="This platform blocks embedding — it will open in a new browser tab."
-              >
-                <ExternalLink className="w-2.5 h-2.5" />
-                New tab
-              </span>
-            )}
           </div>
           <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{platform.description}</p>
           {/* Account labels for existing entries */}
@@ -197,7 +192,7 @@ export default function AddPlatforms() {
             <div className="mb-8 bg-[#fff0f3] dark:bg-[#1a0f14] border border-[#dc2350]/30 rounded-xl p-4 flex gap-3" data-testid="iframe-disclaimer">
               <Info className="w-5 h-5 text-[#dc2350] shrink-0 mt-0.5" />
               <div className="text-sm text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security. Those will open in a new browser tab instead — look for the <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-medium align-middle"><ExternalLink className="w-2.5 h-2.5" />New tab</span> badge. Your login always stays with the platform, never with us.
+                <strong className="text-foreground">Heads up:</strong> Some platforms (WhatsApp, Slack, Discord, Gmail, Facebook, and others) block embedding inside other websites for security, so they can't run in the browser. Get the KoaMessenger desktop app for Mac or Windows to add and use those platforms here.
               </div>
             </div>
           )}

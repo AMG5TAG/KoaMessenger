@@ -4,7 +4,7 @@ import { useUser } from "@clerk/react";
 import { useListUserPlatforms, useGetMe } from "@workspace/api-client-react";
 import { Loader2, ExternalLink, ShieldAlert, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isDesktop } from "@/lib/desktop";
+import { isDesktop, isPlatformAvailable } from "@/lib/desktop";
 import {
   useNotifications,
   parseUnreadFromTitle,
@@ -105,6 +105,12 @@ function PanesHost() {
   const { data: userPlatforms } = useListUserPlatforms({
     query: { queryKey: ["/api/user-platforms"] },
   });
+  // Platforms that can't be embedded in the browser are desktop-only — don't
+  // mount, warm, or render panes for them on the web build (see
+  // isPlatformAvailable). On desktop this is the full list unchanged.
+  const visibleUserPlatforms = userPlatforms?.filter((up) =>
+    isPlatformAvailable(up.platform),
+  );
   const { data: me, isLoading: meLoading, isError: meError } = useGetMe({
     query: { queryKey: ["/api/users/me"] },
   });
@@ -159,14 +165,14 @@ function PanesHost() {
   // ones, and newly added accounts get warmed too.
   const scheduledPreloadRef = useRef<Set<number>>(new Set());
   useEffect(() => {
-    if (!userPlatforms) return;
+    if (!visibleUserPlatforms) return;
     let order = 0;
-    for (const up of userPlatforms) {
+    for (const up of visibleUserPlatforms) {
       if (scheduledPreloadRef.current.has(up.id)) continue;
       scheduledPreloadRef.current.add(up.id);
       setTimeout(() => ensurePaneMounted(up.id), order++ * 500);
     }
-  }, [userPlatforms, ensurePaneMounted]);
+  }, [visibleUserPlatforms, ensurePaneMounted]);
 
   // Persist tab lists whenever they change so each tab's session partition
   // (and the account logged in there) is re-attached on the next launch.
@@ -190,8 +196,8 @@ function PanesHost() {
   // bottom-right). The native banner is the desktop path; this toast is the
   // fallback for the web build, which has no OS notifier.
   useEffect(() => {
-    if (!userPlatforms || isDesktop()) return;
-    for (const up of userPlatforms) {
+    if (!visibleUserPlatforms || isDesktop()) return;
+    for (const up of visibleUserPlatforms) {
       if (up.id === activeUpId) {
         // Just update previous so switching away doesn't fire a stale toast
         prevCounts.current[up.id] = counts[up.id] ?? 0;
@@ -218,7 +224,7 @@ function PanesHost() {
       }
       prevCounts.current[up.id] = curr;
     }
-  }, [counts, activeUpId, userPlatforms, toast, setLocation]);
+  }, [counts, activeUpId, visibleUserPlatforms, toast, setLocation]);
 
   // Wait for the user record before mounting any pane: syncAccounts is part of
   // the desktop webview partition string, and flipping it after mount would
@@ -253,7 +259,7 @@ function PanesHost() {
       {/* Render ALL visited platforms — only the active one is visible.
           Keeping them mounted means webviews stay alive for title / notification monitoring. */}
       {visitedUpIds.map((upId) => {
-        const up = userPlatforms?.find((u) => u.id === upId);
+        const up = visibleUserPlatforms?.find((u) => u.id === upId);
         const state = platformTabs[upId];
         const isActive = upId === activeUpId;
 

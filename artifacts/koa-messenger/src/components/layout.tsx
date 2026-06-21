@@ -24,7 +24,7 @@ import {
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications-context";
 import { queryClient } from "@/lib/queryClient";
-import { isDesktop } from "@/lib/desktop";
+import { isDesktop, isPlatformAvailable } from "@/lib/desktop";
 import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -50,9 +50,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const updateMutation = useUpdateUserPlatform();
   const reorderMutation = useReorderUserPlatforms();
 
-  const activePlatforms = (userPlatforms?.filter((p) => p.isActive) || []).sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
+  const activePlatforms = (
+    userPlatforms?.filter(
+      // Hide platforms that can't be embedded in the browser — they're
+      // desktop-only (see isPlatformAvailable).
+      (p) => p.isActive && isPlatformAvailable(p.platform),
+    ) || []
+  ).sort((a, b) => a.sortOrder - b.sortOrder);
 
   const handleSignOut = () => {
     // Clear all cached query data before signing out so the sidebar
