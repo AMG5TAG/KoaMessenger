@@ -152,7 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Platform icons */}
-      <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center gap-3 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col items-center gap-3 hide-scrollbar">
         {isLoading ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (

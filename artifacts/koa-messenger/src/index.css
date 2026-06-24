@@ -225,6 +225,19 @@ html.light ::-webkit-scrollbar-thumb:hover {
     animation: marquee 30s linear infinite;
   }
 
+  /* Hide scrollbars while keeping the element scrollable. Used by the sidebar
+     icon rail and full-page scroll areas. (Previously referenced but never
+     defined, so default scrollbars showed — including a stray horizontal bar in
+     the narrow sidebar, since `overflow-y: auto` makes overflow-x compute to
+     `auto` too.) */
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* legacy Edge */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* WebKit/Blink */
+  }
+
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }

@@ -171,8 +171,11 @@ function createMainWindow() {
     // Disable macOS native tab bar (tabbingMode prevents the Tab Bar from appearing
     // in the Window menu and in the Linked Accounts / Settings views)
     ...(process.platform === "darwin" ? { tabbingMode: "disallowed" as const } : {}),
-    vibrancy: process.platform === "darwin" ? ("under-window" as const) : undefined,
-    visualEffectState: process.platform === "darwin" ? ("active" as const) : undefined,
+    // No `vibrancy`/`visualEffectState`: those translucent-material effects were
+    // for the old frameless ("hiddenInset") look. With a standard native title
+    // bar they're contradictory with the opaque backgroundColor and make the
+    // window draw content up under the title-bar/traffic-light area (the sidebar
+    // logo ended up behind the window buttons).
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
