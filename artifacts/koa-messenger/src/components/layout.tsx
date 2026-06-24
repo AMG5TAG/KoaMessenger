@@ -24,7 +24,7 @@ import {
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications-context";
 import { queryClient } from "@/lib/queryClient";
-import { isDesktop, isPlatformAvailable } from "@/lib/desktop";
+import { isPlatformAvailable } from "@/lib/desktop";
 import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -34,7 +34,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { counts, clearCount } = useNotifications();
   const { toast } = useToast();
-  const desktop = isDesktop();
 
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -138,26 +137,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Logo — on macOS the traffic-light buttons sit at y≈16–28px
-          (trafficLightPosition x:16 y:16 in the desktop main process).
-          The title-bar zone is 76px tall with 26px top padding so the 40px logo
-          renders at y≈31, clear of the buttons, with a few px of clearance above
-          the bottom border. The full zone stays draggable. */}
-      <div
-        className={`flex items-center justify-center border-b border-sidebar-border shrink-0 ${
-          desktop ? "h-[76px] pt-[26px]" : "h-16"
-        }`}
-        style={desktop ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
-      >
-        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-          <Link href="/dashboard">
-            <img
-              src={newAppIconPng}
-              alt="KoaMessenger"
-              className="h-10 w-10 cursor-pointer rounded-xl"
-            />
-          </Link>
-        </div>
+      {/* Logo — the desktop app now uses a native title bar (titleBarStyle:
+          "default"), so dragging is handled by the OS chrome above this content
+          and the sidebar no longer needs a custom drag region or traffic-light
+          padding. */}
+      <div className="flex items-center justify-center border-b border-sidebar-border shrink-0 h-16">
+        <Link href="/dashboard">
+          <img
+            src={newAppIconPng}
+            alt="KoaMessenger"
+            className="h-10 w-10 cursor-pointer rounded-xl"
+          />
+        </Link>
       </div>
 
       {/* Platform icons */}
