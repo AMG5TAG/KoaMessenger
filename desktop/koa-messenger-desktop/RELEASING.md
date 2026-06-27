@@ -8,10 +8,11 @@ on native runners (electron-builder can't cross-build a macOS `.app` from Linux)
   when the Apple secrets are set (else unsigned).
 - **Windows** — an **NSIS** `.exe` installer (x64), currently unsigned
   (SmartScreen warns on first run until a code-signing cert is added).
+- **Linux** — an **AppImage** (x64).
 
-Both are attached to the same GitHub Release. The workflow opens the release as a
-**draft**, builds both platforms in parallel, uploads each installer, and only
-makes the release public once **both** builds succeed — so a half-built release
+All are attached to the same GitHub Release. The workflow opens the release as a
+**draft**, builds the platforms in parallel, uploads each installer, and only
+makes the release public once **every** build succeeds — so a half-built release
 never goes live.
 
 ## Cut a release (recommended: one click)
@@ -117,6 +118,7 @@ uploads next to the installers:
 - macOS: `*-mac.zip` + `latest-mac.yml` (+ `.blockmap`) — macOS updates from the
   zip, not the `.dmg`.
 - Windows: the NSIS `.exe` + `latest.yml` (+ `.blockmap`).
+- Linux: the `.AppImage` + `latest-linux.yml` (+ `.blockmap`).
 
 The CI upload steps fail loudly if `latest*.yml` is missing, so a release can't
 silently ship without a working update feed.

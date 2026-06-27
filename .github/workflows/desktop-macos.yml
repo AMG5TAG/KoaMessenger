@@ -1,6 +1,6 @@
 name: Build desktop apps
 
-# Builds the KoaMessenger Electron desktop shell for macOS and Windows.
+# Builds the KoaMessenger Electron desktop shell for macOS, Windows and Linux.
 #
 # Two ways to run it:
 #
@@ -12,14 +12,16 @@ name: Build desktop apps
 # 2. MANUAL TAG — `git tag v1.2.3 && git push origin v1.2.3` builds & publishes
 #    a Release for that tag (no version bump).
 #
-# Flow: `prepare` resolves the version and creates a DRAFT release, `build-mac`
-# and `build-windows` build in parallel and upload their installers to that
+# Flow: `prepare` resolves the version and creates a DRAFT release, the
+# per-platform build jobs build in parallel and upload their installers to that
 # draft, then `publish` flips it public — so a half-built release never goes
 # live. Outputs:
 #   - macOS:   universal .dmg (Apple Silicon + Intel), signed + notarized when
 #              the Apple secrets are set (see RELEASING.md), else unsigned.
 #   - Windows: NSIS .exe installer (x64), unsigned (SmartScreen will warn on
 #              first run until a code-signing cert is added).
+#   - Linux:   AppImage (x64).
+# Each job also uploads its electron-updater feed (latest*.yml + blockmaps).
 
 on:
   push:
@@ -244,9 +246,55 @@ jobs:
           gh release upload "${{ needs.prepare.outputs.tag }}" "${files[@]}" \
             --repo "${{ github.repository }}" --clobber
 
-  # Both installers built and uploaded -> make the release public.
+  build-linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @workspace/koa-messenger-desktop...
+
+      - name: Compile TypeScript -> dist/main.cjs
+        run: pnpm --filter @workspace/koa-messenger-desktop run build
+
+      - name: Package AppImage
+        run: >-
+          pnpm --filter @workspace/koa-messenger-desktop exec
+          electron-builder --linux AppImage --publish never
+          -c.extraMetadata.version=${{ needs.prepare.outputs.version }}
+
+      - name: Upload Linux installer + update metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          cd desktop/koa-messenger-desktop/release
+          # .AppImage = installer; latest-linux.yml + .blockmap = updater feed.
+          files=( *.AppImage *.blockmap latest-linux.yml )
+          [ -f latest-linux.yml ] || { echo "::error::latest-linux.yml missing — auto-update would break"; exit 1; }
+          echo "Uploading: ${files[*]}"
+          gh release upload "${{ needs.prepare.outputs.tag }}" "${files[@]}" \
+            --repo "${{ github.repository }}" --clobber
+
+  # All installers built and uploaded -> make the release public.
   publish:
-    needs: [prepare, build-mac, build-windows]
+    needs: [prepare, build-mac, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Publish the release
