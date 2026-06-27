@@ -17,6 +17,7 @@ import { Loader2, Bell, User, Moon, Sun, Monitor, Shield, Smartphone, Laptop } f
 import { useUser } from "@clerk/react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useTheme } from "@/lib/theme-context";
+import { isPlatformAvailable } from "@/lib/desktop";
 
 export default function Settings() {
   const { user } = useUser();
@@ -28,7 +29,13 @@ export default function Settings() {
   const { data: notifPrefs, isLoading: notifLoading } = useGetNotificationPreferences({
     query: { queryKey: getGetNotificationPreferencesQueryKey() },
   });
-  const { data: userPlatforms } = useListUserPlatforms();
+  const { data: allUserPlatforms } = useListUserPlatforms();
+  // Hide platforms that can't be embedded in the browser — they're desktop-only
+  // (see isPlatformAvailable), so they shouldn't show in the web build's
+  // notification list either.
+  const userPlatforms = allUserPlatforms?.filter((up) =>
+    isPlatformAvailable(up.platform),
+  );
 
   const updateMe = useUpdateMe();
   const updateNotif = useUpdateNotificationPreferences();

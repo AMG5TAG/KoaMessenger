@@ -24,7 +24,7 @@ import {
 } from "@workspace/api-client-react";
 import { useNotifications } from "@/lib/notifications-context";
 import { queryClient } from "@/lib/queryClient";
-import { isDesktop } from "@/lib/desktop";
+import { isPlatformAvailable } from "@/lib/desktop";
 import { useToast } from "@/hooks/use-toast";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -34,7 +34,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { counts, clearCount } = useNotifications();
   const { toast } = useToast();
-  const desktop = isDesktop();
 
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -50,9 +49,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const updateMutation = useUpdateUserPlatform();
   const reorderMutation = useReorderUserPlatforms();
 
-  const activePlatforms = (userPlatforms?.filter((p) => p.isActive) || []).sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
+  const activePlatforms = (
+    userPlatforms?.filter(
+      // Hide platforms that can't be embedded in the browser — they're
+      // desktop-only (see isPlatformAvailable).
+      (p) => p.isActive && isPlatformAvailable(p.platform),
+    ) || []
+  ).sort((a, b) => a.sortOrder - b.sortOrder);
 
   const handleSignOut = () => {
     // Clear all cached query data before signing out so the sidebar
@@ -134,30 +137,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Logo — on macOS the traffic-light buttons sit at y≈16–28px
-          (trafficLightPosition x:16 y:16 in the desktop main process).
-          The title-bar zone is 76px tall with 26px top padding so the 40px logo
-          renders at y≈31, clear of the buttons, with a few px of clearance above
-          the bottom border. The full zone stays draggable. */}
-      <div
-        className={`flex items-center justify-center border-b border-sidebar-border shrink-0 ${
-          desktop ? "h-[76px] pt-[26px]" : "h-16"
-        }`}
-        style={desktop ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
-      >
-        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-          <Link href="/dashboard">
-            <img
-              src={newAppIconPng}
-              alt="KoaMessenger"
-              className="h-10 w-10 cursor-pointer rounded-xl"
-            />
-          </Link>
-        </div>
+      {/* Logo — the desktop app now uses a native title bar (titleBarStyle:
+          "default"), so dragging is handled by the OS chrome above this content
+          and the sidebar no longer needs a custom drag region or traffic-light
+          padding. */}
+      <div className="flex items-center justify-center border-b border-sidebar-border shrink-0 h-16">
+        <Link href="/dashboard">
+          <img
+            src={newAppIconPng}
+            alt="KoaMessenger"
+            className="h-10 w-10 cursor-pointer rounded-xl"
+          />
+        </Link>
       </div>
 
       {/* Platform icons */}
-      <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center gap-3 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col items-center gap-3 hide-scrollbar">
         {isLoading ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (

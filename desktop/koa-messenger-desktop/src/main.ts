@@ -162,13 +162,20 @@ function createMainWindow() {
     backgroundColor: "#0a0a0a",
     autoHideMenuBar: process.platform !== "darwin",
     title: "KoaMessenger",
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 16 } : undefined,
+    // Standard native title bar on every platform. On macOS this gives a real,
+    // full-width draggable title bar (with the traffic lights in their normal
+    // position) so the window can always be moved and resized — the previous
+    // "hiddenInset" frameless style left no usable title bar once the platform
+    // webviews filled the content area.
+    titleBarStyle: "default",
     // Disable macOS native tab bar (tabbingMode prevents the Tab Bar from appearing
     // in the Window menu and in the Linked Accounts / Settings views)
     ...(process.platform === "darwin" ? { tabbingMode: "disallowed" as const } : {}),
-    vibrancy: process.platform === "darwin" ? ("under-window" as const) : undefined,
-    visualEffectState: process.platform === "darwin" ? ("active" as const) : undefined,
+    // No `vibrancy`/`visualEffectState`: those translucent-material effects were
+    // for the old frameless ("hiddenInset") look. With a standard native title
+    // bar they're contradictory with the opaque backgroundColor and make the
+    // window draw content up under the title-bar/traffic-light area (the sidebar
+    // logo ended up behind the window buttons).
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -509,6 +516,83 @@ function installSessionIPC() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Embedded-platform popup / navigation handling
+ *
+ * Facebook / Meta Business sign-in is a *chain* of popups: the embedded pane
+ * opens a login popup, which itself opens further popups (Meta Business Suite,
+ * 2FA, "Continue as…") before posting back to the opener and closing. Every
+ * window in that chain MUST stay inside the platform's webview partition — if a
+ * single link escapes to the external browser (or to a fresh session), the auth
+ * cookie lands somewhere the embedded pane can't see and the pane never becomes
+ * signed in. The earlier fix only covered the FIRST popup (the webview guest);
+ * the child popup windows it spawned had no handlers, so the NEXT popup in the
+ * chain broke back out into Safari/Chrome ("Meta Business still opens in a new
+ * browser window"). These helpers apply the same in-session handling to the
+ * whole chain.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** Keep non-http/https top-level navigations (mailto:, tel:) out of the
+ *  embedded view, handing the allowed ones to the OS default app. */
+function attachExternalSchemeNavGuard(contents: Electron.WebContents) {
+  contents.on("will-navigate", (ev, url) => {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
+        ev.preventDefault();
+        if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
+          shell.openExternal(url).catch(() => {
+            /* ignore */
+          });
+        }
+      }
+    } catch {
+      ev.preventDefault();
+    }
+  });
+}
+
+/** A window-open handler that keeps http/https popups inside `ses` (the
+ *  platform partition) and hands mailto:/tel: to the OS. Shared by the webview
+ *  guest AND every child popup window it opens, so the full Facebook → Meta
+ *  Business auth popup chain stays in-session and the login cookie lands in the
+ *  partition the embedded pane reads from. The popup's session inherits the
+ *  partition's header-stripping + permission handlers (see ensurePartitionHardened). */
+function makeInSessionWindowOpenHandler(
+  ses: Electron.Session,
+): (details: Electron.HandlerDetails) => Electron.WindowOpenHandlerResponse {
+  return ({ url }) => {
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return { action: "deny" };
+    }
+    // Non-web schemes (mailto:, tel:) hand off to the OS default app.
+    if (u.protocol !== "http:" && u.protocol !== "https:") {
+      if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
+        shell.openExternal(url).catch(() => {
+          /* ignore */
+        });
+      }
+      return { action: "deny" };
+    }
+    return {
+      action: "allow",
+      overrideBrowserWindowOptions: {
+        autoHideMenuBar: true,
+        backgroundColor: "#0a0a0a",
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          session: ses,
+        },
+      },
+    };
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Webview hardening
  * ────────────────────────────────────────────────────────────────────── */
 function installWebviewHardening() {
@@ -546,32 +630,30 @@ function installWebviewHardening() {
     });
 
     contents.on("did-attach-webview", (_e, guest) => {
-      guest.on("will-navigate", (ev, url) => {
-        try {
-          const u = new URL(url);
-          if (u.protocol !== "http:" && u.protocol !== "https:") {
-            ev.preventDefault();
-            // Open external schemes (mailto:, tel:) in the OS default app
-            if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) {
-              shell.openExternal(url).catch(() => {
-                /* ignore */
-              });
-            }
-          }
-        } catch {
-          ev.preventDefault();
-        }
-      });
-      guest.setWindowOpenHandler(({ url }) => {
-        try {
-          const u = new URL(url);
-          if (ALLOWED_OPEN_PROTOCOLS.has(u.protocol)) shell.openExternal(url);
-        } catch {
-          /* ignore */
-        }
-        return { action: "deny" };
-      });
+      // http/https popups (Facebook/Meta OAuth dialogs, "Continue with…" flows)
+      // open as a hardened in-app child window sharing this guest's partition,
+      // so the login cookie lands where the embedded pane can see it. mailto:/
+      // tel: hand off to the OS. The popup self-closes (window.close /
+      // postMessage to opener) when the platform finishes auth.
+      attachExternalSchemeNavGuard(guest);
+      guest.setWindowOpenHandler(makeInSessionWindowOpenHandler(guest.session));
     });
+
+    // Child popup windows opened from an embedded pane (the Facebook → Meta
+    // Business sign-in chain) are real BrowserWindows, NOT <webview> guests, so
+    // the will-attach/did-attach handlers above never fire for them. Without
+    // this they'd inherit no window-open handler and the NEXT popup in the chain
+    // (e.g. Meta Business Suite) would break out into the external browser —
+    // exactly the "still opens in a new browser window" symptom. We detect them
+    // by their session: makeInSessionWindowOpenHandler creates them on the
+    // platform's hardened partition, so re-apply the same in-session handling to
+    // keep the whole chain inside the partition. The main shell window
+    // (persist:koa-shell, never in hardenedSessions) is correctly skipped and
+    // keeps its own external-browser handler.
+    if (contents.getType() === "window" && hardenedSessions.has(contents.session)) {
+      attachExternalSchemeNavGuard(contents);
+      contents.setWindowOpenHandler(makeInSessionWindowOpenHandler(contents.session));
+    }
   });
 }
 
