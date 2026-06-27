@@ -97,6 +97,7 @@ jobs:
         run: pnpm --filter @workspace/koa-messenger-desktop run build
 
       - name: Package universal .dmg
+        id: pkg
         # Signs + notarizes when the Apple secrets are configured, otherwise
         # builds UNSIGNED (Gatekeeper right-click-to-open). See repo secrets:
         #   MAC_CSC_LINK            base64 of the Developer ID Application .p12
@@ -121,12 +122,36 @@ jobs:
             echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/asc_api_key.p8"
             export APPLE_API_KEY="$RUNNER_TEMP/asc_api_key.p8"
             ARGS="$ARGS -c.mac.notarize=true"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
           else
             echo "No Apple secrets -> building UNSIGNED"
             export CSC_IDENTITY_AUTO_DISCOVERY=false
+            echo "signed=false" >> "$GITHUB_OUTPUT"
           fi
           # shellcheck disable=SC2086
           pnpm --filter @workspace/koa-messenger-desktop exec electron-builder $ARGS
+
+      # Fail loudly if a "signed" build didn't actually end up signed, notarized
+      # and Gatekeeper-acceptable — so a broken .dmg never reaches a Release.
+      # Skipped entirely for the unsigned fallback (nothing to verify).
+      - name: Verify signature & notarization
+        if: steps.pkg.outputs.signed == 'true'
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="desktop/koa-messenger-desktop/release"
+          APP=$(find "$RELEASE_DIR" -maxdepth 3 -name "*.app" | head -n1)
+          DMG=$(ls "$RELEASE_DIR"/*.dmg | head -n1)
+          if [ -z "$APP" ] || [ -z "$DMG" ]; then
+            echo "::error::Could not locate built .app or .dmg under $RELEASE_DIR"; exit 1
+          fi
+          echo "Verifying app: $APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign --display --verbose=4 "$APP" 2>&1 | grep -i "Authority=Developer ID Application"
+          echo "Gatekeeper assessment (notarization ticket must be accepted):"
+          spctl --assess --type execute --verbose=4 "$APP"
+          echo "Validating stapled notarization ticket on the .dmg:"
+          xcrun stapler validate "$DMG"
+          echo "✅ Signed, notarized and Gatekeeper-accepted."
 
       - name: Upload .dmg as build artifact
         uses: actions/upload-artifact@v4
