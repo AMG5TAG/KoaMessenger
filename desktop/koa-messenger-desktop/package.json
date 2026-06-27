@@ -1,6 +1,6 @@
 {
   "name": "@workspace/koa-messenger-desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "KoaMessenger desktop shell (Electron) — true per-account isolation via webview partitions.",
   "main": "dist/main.cjs",
@@ -14,8 +14,14 @@
   "build": {
     "appId": "au.com.koapos.koamessenger",
     "productName": "KoaMessenger",
-    "files": ["dist/**/*", "package.json", "build/**/*"],
-    "directories": { "output": "release" },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "build/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
     "mac": {
       "category": "public.app-category.social-networking",
       "icon": "build/icon.png"
