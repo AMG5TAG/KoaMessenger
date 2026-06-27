@@ -1,6 +1,6 @@
 {
   "name": "@workspace/koa-messenger-desktop",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "KoaMessenger desktop shell (Electron) — true per-account isolation via webview partitions.",
   "main": "dist/main.cjs",
