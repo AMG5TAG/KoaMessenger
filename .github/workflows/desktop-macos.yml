@@ -180,13 +180,20 @@ jobs:
           xcrun stapler validate "$DMG"
           echo "✅ Signed, notarized and Gatekeeper-accepted."
 
-      - name: Upload .dmg to release
+      - name: Upload macOS installer + update metadata
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release upload "${{ needs.prepare.outputs.tag }}"
-          desktop/koa-messenger-desktop/release/*.dmg
-          --repo "${{ github.repository }}" --clobber
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          cd desktop/koa-messenger-desktop/release
+          # .dmg = user download; .zip + latest-mac.yml + .blockmap = the
+          # electron-updater feed (macOS updates from the zip, not the dmg).
+          files=( *.dmg *.zip *.blockmap latest-mac.yml )
+          [ -f latest-mac.yml ] || { echo "::error::latest-mac.yml missing — auto-update would break"; exit 1; }
+          echo "Uploading: ${files[*]}"
+          gh release upload "${{ needs.prepare.outputs.tag }}" "${files[@]}" \
+            --repo "${{ github.repository }}" --clobber
 
   build-windows:
     needs: prepare
@@ -223,13 +230,19 @@ jobs:
           electron-builder --win --publish never
           -c.extraMetadata.version=${{ needs.prepare.outputs.version }}
 
-      - name: Upload .exe to release
+      - name: Upload Windows installer + update metadata
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release upload "${{ needs.prepare.outputs.tag }}"
-          desktop/koa-messenger-desktop/release/*.exe
-          --repo "${{ github.repository }}" --clobber
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          cd desktop/koa-messenger-desktop/release
+          # .exe = installer; latest.yml + .blockmap = the electron-updater feed.
+          files=( *.exe *.blockmap latest.yml )
+          [ -f latest.yml ] || { echo "::error::latest.yml missing — auto-update would break"; exit 1; }
+          echo "Uploading: ${files[*]}"
+          gh release upload "${{ needs.prepare.outputs.tag }}" "${files[@]}" \
+            --repo "${{ github.repository }}" --clobber
 
   # Both installers built and uploaded -> make the release public.
   publish:
