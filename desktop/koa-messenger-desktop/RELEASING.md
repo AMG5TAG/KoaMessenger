@@ -102,6 +102,31 @@ When a build is signed, CI runs `codesign --verify --deep --strict`,
 notarization ticket), and `xcrun stapler validate` on the `.dmg`. If any fail,
 the run fails **before** publishing, so a broken `.dmg` is never released.
 
+## Auto-update
+
+Installed apps update themselves via
+[`electron-updater`](https://www.electron.build/auto-update), pointed at this
+repo's GitHub Releases (`build.publish` in `package.json`). On launch (and every
+6 hours) the app checks for a newer published release, downloads it in the
+background, and installs it on the next quit; a notification offers an immediate
+restart.
+
+For this to work, each release must carry the **update metadata** that CI
+uploads next to the installers:
+
+- macOS: `*-mac.zip` + `latest-mac.yml` (+ `.blockmap`) — macOS updates from the
+  zip, not the `.dmg`.
+- Windows: the NSIS `.exe` + `latest.yml` (+ `.blockmap`).
+
+The CI upload steps fail loudly if `latest*.yml` is missing, so a release can't
+silently ship without a working update feed.
+
+**Platform caveat:** macOS auto-update requires a **code-signed** app
+(Squirrel.Mac won't update an unsigned build). Until the Apple signing secrets
+are set, the macOS check just errors and is swallowed — no user-facing error, but
+no auto-update either. Windows auto-updates even while unsigned. Auto-update is
+also a no-op in development (`!app.isPackaged`).
+
 ## Building locally (Mac only)
 
 ```bash

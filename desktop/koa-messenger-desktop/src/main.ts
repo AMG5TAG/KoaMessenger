@@ -9,6 +9,7 @@ import {
   nativeImage,
 } from "electron";
 import type { NativeImage, MenuItemConstructorOptions } from "electron";
+import { autoUpdater } from "electron-updater";
 import path from "node:path";
 
 const DEV_URL = process.env.KOA_DEV_URL ?? "http://localhost:18802/";
@@ -682,6 +683,57 @@ async function flushAllSessions() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
+ * Auto-update (electron-updater → GitHub Releases)
+ *
+ * Checks the repo's GitHub Releases (see `build.publish` in package.json) for a
+ * newer version, downloads it in the background, and installs on next quit. A
+ * notification offers an immediate restart once a build is downloaded.
+ *
+ * Platform notes:
+ *  - Windows (NSIS): works on unsigned builds.
+ *  - macOS: Squirrel.Mac REQUIRES a code-signed app, so until the Apple signing
+ *    secrets are configured the check simply errors and is swallowed (no user-
+ *    facing error). Updates from the bundled .zip, not the .dmg.
+ * ────────────────────────────────────────────────────────────────────── */
+function setupAutoUpdates() {
+  // electron-updater only operates on a packaged build; in dev it throws.
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("error", (err) => {
+    // Expected on unsigned macOS builds ("Could not get code signature …").
+    // Log only — never surface an update error to the user.
+    console.error("[auto-update]", (err as Error)?.message ?? err);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    if (!Notification.isSupported()) return;
+    const n = new Notification({
+      title: "Update ready",
+      body: `KoaMessenger ${info.version} will install when you restart. Click to restart now.`,
+      silent: true,
+    });
+    n.on("click", () => {
+      // isSilent=false (show the installer), isForceRunAfter=true (relaunch).
+      autoUpdater.quitAndInstall(false, true);
+    });
+    n.show();
+  });
+
+  const check = () => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error("[auto-update] check failed:", (err as Error)?.message ?? err);
+    });
+  };
+
+  check();
+  // Re-check every 6h so long-running sessions still pick up releases.
+  setInterval(check, 6 * 60 * 60 * 1000).unref();
+}
+
+/* ──────────────────────────────────────────────────────────────────────
  * Lifecycle
  * ────────────────────────────────────────────────────────────────────── */
 
@@ -725,6 +777,9 @@ app.whenReady().then(async () => {
   }
 
   mainWindow = createMainWindow();
+
+  // Check GitHub Releases for updates (no-op in dev / unsigned macOS).
+  setupAutoUpdates();
 
   // Periodic safety flush so a crash / force-quit (which skips before-quit)
   // still leaves recently-added account logins on disk. unref() so this timer
