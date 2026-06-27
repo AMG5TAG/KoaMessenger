@@ -1,10 +1,18 @@
-# Releasing the macOS desktop app
+# Releasing the desktop apps
 
-The macOS `.dmg` is built in CI by
+The desktop installers are built in CI by
 [`.github/workflows/desktop-macos.yml`](../../.github/workflows/desktop-macos.yml)
-on a real macOS runner (electron-builder can't produce a macOS `.app` from
-Linux). The output is a **universal** binary (Apple Silicon + Intel), uploaded as
-a build artifact on every run and attached to a GitHub Release.
+on native runners (electron-builder can't cross-build a macOS `.app` from Linux):
+
+- **macOS** — a **universal** `.dmg` (Apple Silicon + Intel), signed + notarized
+  when the Apple secrets are set (else unsigned).
+- **Windows** — an **NSIS** `.exe` installer (x64), currently unsigned
+  (SmartScreen warns on first run until a code-signing cert is added).
+
+Both are attached to the same GitHub Release. The workflow opens the release as a
+**draft**, builds both platforms in parallel, uploads each installer, and only
+makes the release public once **both** builds succeed — so a half-built release
+never goes live.
 
 ## Cut a release (recommended: one click)
 
@@ -15,10 +23,12 @@ That single run:
 
 1. Bumps `version` in `desktop/koa-messenger-desktop/package.json` on `main`.
 2. Commits `Release vX.Y.Z` and pushes the matching `vX.Y.Z` tag.
-3. Builds the universal `.dmg` named `KoaMessenger-X.Y.Z-universal.dmg`.
-4. Signs + notarizes it **if the Apple secrets are set** (see below), then
-   verifies the signature/notarization.
-5. Publishes a GitHub Release with the `.dmg` attached and auto-generated notes.
+3. Builds `KoaMessenger-X.Y.Z-universal.dmg` (macOS) and
+   `KoaMessenger Setup X.Y.Z.exe` (Windows).
+4. Signs + notarizes the macOS build **if the Apple secrets are set** (see
+   below), then verifies the signature/notarization.
+5. Publishes a GitHub Release with both installers attached and auto-generated
+   notes.
 
 You never edit the version by hand — `package.json`, the git tag, and the `.dmg`
 filename always stay in sync.
