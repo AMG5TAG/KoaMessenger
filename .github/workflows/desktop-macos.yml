@@ -2,13 +2,19 @@ name: Build macOS desktop app
 
 # Builds the KoaMessenger Electron desktop shell into a macOS .dmg.
 #
-# - Runs on a real macOS runner (electron-builder cannot produce a macOS .app
-#   from Linux), building a UNIVERSAL binary so the one .dmg installs on both
-#   Apple Silicon (arm64) and Intel (x64) Macs.
-# - Every run uploads the .dmg as a downloadable build artifact (grab it from
-#   the run's "Summary" page → Artifacts).
-# - Pushing a tag like `v0.1.0` ALSO publishes a GitHub Release with the .dmg
-#   attached, so you get a permanent download link.
+# Two ways to run it:
+#
+# 1. AUTOMATED RELEASE (recommended) — Actions tab → "Run workflow" → pick a
+#    bump (patch/minor/major). CI bumps desktop/package.json on main, commits
+#    "Release vX.Y.Z", creates+pushes the matching tag, then builds & publishes
+#    the Release. You never edit the version by hand.
+#
+# 2. MANUAL TAG — `git tag v1.2.3 && git push origin v1.2.3` builds & publishes
+#    a Release for that tag (no version bump; assumes package.json already
+#    matches, e.g. for re-releasing).
+#
+# Either way the output is a UNIVERSAL .dmg (Apple Silicon + Intel) uploaded as
+# a build artifact AND attached to the GitHub Release.
 #
 # The build is intentionally NOT code-signed or notarized (no Apple Developer
 # cert in CI). On first launch macOS Gatekeeper will block it — right-click the
@@ -18,10 +24,24 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch: {} # lets you build on demand from the Actions tab
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump for this release"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+# Never run two releases at once (a second would race on the main-branch push).
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
 
 permissions:
-  contents: write # required to create a Release on tag pushes
+  contents: write # bump-commit + tag push to main, and creating the Release
 
 jobs:
   build-mac:
@@ -29,6 +49,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history + persisted token so the bump commit/tag can be pushed.
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -41,6 +64,29 @@ jobs:
           node-version: "24"
           cache: pnpm
 
+      # Resolve the release version + tag for BOTH entry points:
+      #  - workflow_dispatch: bump package.json on main, commit, tag, push.
+      #  - tag push: just read the version out of the tag name.
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            NEW=$(npm --prefix desktop/koa-messenger-desktop version "${{ inputs.bump }}" \
+              --no-git-tag-version | tail -n1)            # e.g. v0.1.2
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Release ${NEW}" desktop/koa-messenger-desktop/package.json
+            git tag "${NEW}"
+            git push origin HEAD:main
+            git push origin "${NEW}"
+            echo "tag=${NEW}" >> "$GITHUB_OUTPUT"
+            echo "version=${NEW#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
       # Focused install: only the desktop package and its workspace deps, so CI
       # doesn't have to build the entire web/app stack just to package the shell.
       - name: Install dependencies
@@ -49,23 +95,10 @@ jobs:
       - name: Compile TypeScript -> dist/main.cjs
         run: pnpm --filter @workspace/koa-messenger-desktop run build
 
-      # Derive the build version from the git tag (v1.2.3 -> 1.2.3) so the .dmg
-      # filename matches the release tag. For non-tag runs (workflow_dispatch),
-      # fall back to the version already in package.json.
-      - name: Determine version
-        id: ver
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=$(node -p "require('./desktop/koa-messenger-desktop/package.json').version")" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Package universal .dmg
         # CSC_IDENTITY_AUTO_DISCOVERY=false stops electron-builder from trying to
         # sign with a non-existent identity (which would fail the CI build).
-        # -c.extraMetadata.version overrides the packaged version (and thus the
-        # .dmg filename) without mutating package.json.
+        # -c.extraMetadata.version sets the packaged version (and .dmg filename).
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: >-
@@ -80,13 +113,12 @@ jobs:
           path: desktop/koa-messenger-desktop/release/*.dmg
           if-no-files-found: error
 
-      - name: Publish Release (tag pushes only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "${{ github.ref_name }}"
+          gh release create "${{ steps.ver.outputs.tag }}"
           desktop/koa-messenger-desktop/release/*.dmg
           --repo "${{ github.repository }}"
-          --title "${{ github.ref_name }}"
+          --title "${{ steps.ver.outputs.tag }}"
           --generate-notes
