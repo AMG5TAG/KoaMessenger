@@ -70,7 +70,15 @@ const clerkAppearance = {
     logoImage: "!w-40 !h-40 object-contain",
     headerTitle: "text-foreground font-bold",
     headerSubtitle: "text-muted-foreground",
+    // Email-only auth: hide the social connection buttons (Google) and the
+    // "or" divider that separates them from the email form, so only email
+    // sign-in / sign-up is offered. NOTE: this hides them in the UI; the Google
+    // SSO connection should also be disabled in the Clerk Dashboard to remove it
+    // server-side.
+    socialButtonsRoot: "hidden",
+    socialButtonsBlockButton: "hidden",
     socialButtonsBlockButtonText: "text-foreground",
+    dividerRow: "hidden",
     formFieldLabel: "text-muted-foreground",
     footerActionLink: "text-[#dc2350] hover:text-[#e34f73]",
     footerActionText: "text-muted-foreground",
