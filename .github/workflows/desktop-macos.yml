@@ -1,0 +1,77 @@
+name: Build macOS desktop app
+
+# Builds the KoaMessenger Electron desktop shell into a macOS .dmg.
+#
+# - Runs on a real macOS runner (electron-builder cannot produce a macOS .app
+#   from Linux), building a UNIVERSAL binary so the one .dmg installs on both
+#   Apple Silicon (arm64) and Intel (x64) Macs.
+# - Every run uploads the .dmg as a downloadable build artifact (grab it from
+#   the run's "Summary" page → Artifacts).
+# - Pushing a tag like `v0.1.0` ALSO publishes a GitHub Release with the .dmg
+#   attached, so you get a permanent download link.
+#
+# The build is intentionally NOT code-signed or notarized (no Apple Developer
+# cert in CI). On first launch macOS Gatekeeper will block it — right-click the
+# app → Open, or run `xattr -dr com.apple.quarantine /Applications/KoaMessenger.app`.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {} # lets you build on demand from the Actions tab
+
+permissions:
+  contents: write # required to create a Release on tag pushes
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      # Focused install: only the desktop package and its workspace deps, so CI
+      # doesn't have to build the entire web/app stack just to package the shell.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @workspace/koa-messenger-desktop...
+
+      - name: Compile TypeScript -> dist/main.cjs
+        run: pnpm --filter @workspace/koa-messenger-desktop run build
+
+      - name: Package universal .dmg
+        # CSC_IDENTITY_AUTO_DISCOVERY=false stops electron-builder from trying to
+        # sign with a non-existent identity (which would fail the CI build).
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: >-
+          pnpm --filter @workspace/koa-messenger-desktop exec
+          electron-builder --mac --universal --publish never
+
+      - name: Upload .dmg as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KoaMessenger-macos-dmg
+          path: desktop/koa-messenger-desktop/release/*.dmg
+          if-no-files-found: error
+
+      - name: Publish Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ github.ref_name }}"
+          desktop/koa-messenger-desktop/release/*.dmg
+          --repo "${{ github.repository }}"
+          --title "${{ github.ref_name }}"
+          --generate-notes
