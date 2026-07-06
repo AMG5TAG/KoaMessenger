@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout";
 import {
   useGetMe,
@@ -6,6 +6,7 @@ import {
   useGetNotificationPreferences,
   useUpdateNotificationPreferences,
   useListUserPlatforms,
+  useReorderUserPlatforms,
   getGetMeQueryKey,
   getGetNotificationPreferencesQueryKey,
 } from "@workspace/api-client-react";
@@ -13,7 +14,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Bell, User, Moon, Sun, Monitor, Shield, Smartphone, Laptop } from "lucide-react";
+import { Loader2, Bell, User, Moon, Sun, Monitor, Shield, Smartphone, Laptop, GripVertical } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useTheme } from "@/lib/theme-context";
@@ -32,17 +33,62 @@ export default function Settings() {
   const { data: allUserPlatforms } = useListUserPlatforms();
   // Hide platforms that can't be embedded in the browser — they're desktop-only
   // (see isPlatformAvailable), so they shouldn't show in the web build's
-  // notification list either.
-  const userPlatforms = allUserPlatforms?.filter((up) =>
-    isPlatformAvailable(up.platform),
-  );
+  // notification list either. Sorted by sortOrder so this list mirrors the
+  // sidebar order (both read/write the same field via the reorder endpoint).
+  const userPlatforms = (
+    allUserPlatforms?.filter((up) => isPlatformAvailable(up.platform)) || []
+  ).sort((a, b) => a.sortOrder - b.sortOrder);
 
   const updateMe = useUpdateMe();
   const updateNotif = useUpdateNotificationPreferences();
+  const reorderPlatforms = useReorderUserPlatforms();
 
   const [displayName, setDisplayName] = useState("");
   const [globalNotifs, setGlobalNotifs] = useState(true);
   const [syncAccounts, setSyncAccounts] = useState(true);
+
+  // Native HTML5 drag-and-drop reordering for the connected-accounts list,
+  // mirroring the sidebar (see AppLayout). Both persist via the same
+  // /user-platforms/reorder endpoint and shared ["/api/user-platforms"] cache.
+  const dragIdRef = useRef<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+
+  const handleDragStart = (upId: number) => {
+    dragIdRef.current = upId;
+  };
+
+  const handleDragOver = (e: React.DragEvent, upId: number) => {
+    e.preventDefault();
+    if (dragIdRef.current !== upId) setDragOverId(upId);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+    const sourceId = dragIdRef.current;
+    dragIdRef.current = null;
+    setDragOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIdx = userPlatforms.findIndex((p) => p.id === sourceId);
+    const targetIdx = userPlatforms.findIndex((p) => p.id === targetId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const newOrder = [...userPlatforms];
+    const [removed] = newOrder.splice(sourceIdx, 1);
+    newOrder.splice(targetIdx, 0, removed);
+
+    try {
+      await reorderPlatforms.mutateAsync({ data: { orderedIds: newOrder.map((p) => p.id) } });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-platforms"] });
+    } catch {
+      toast({ title: "Couldn't reorder", variant: "destructive" });
+    }
+  };
+
+  const handleDragEnd = () => {
+    dragIdRef.current = null;
+    setDragOverId(null);
+  };
 
   const { theme, setTheme } = useTheme();
 
@@ -259,20 +305,42 @@ export default function Settings() {
               </button>
             </div>
 
-            {userPlatforms && userPlatforms.length > 0 ? (
-              <div className="space-y-3">
-                {userPlatforms.map((up) => (
-                  <div key={up.id} className="flex items-center justify-between" data-testid={`row-platform-notif-${up.id}`}>
-                    <div className="flex items-center gap-3">
-                      <PlatformIcon platform={up.platform} size="sm" />
-                      <span className="text-sm text-muted-foreground">{up.platform.name}</span>
-                    </div>
-                    <div className={`text-xs px-2 py-0.5 rounded-full ${up.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}`}>
-                      {up.isActive ? "Active" : "Inactive"}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {userPlatforms.length > 0 ? (
+              <>
+                <p className="text-muted-foreground text-xs mb-3">
+                  Drag to reorder — this also sets the order they appear in your sidebar.
+                </p>
+                <div className="space-y-1">
+                  {userPlatforms.map((up) => {
+                    const isDragTarget = dragOverId === up.id;
+                    return (
+                      <div
+                        key={up.id}
+                        draggable
+                        onDragStart={() => handleDragStart(up.id)}
+                        onDragOver={(e) => handleDragOver(e, up.id)}
+                        onDrop={(e) => handleDrop(e, up.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`flex items-center justify-between rounded-lg -mx-2 px-2 py-1.5 transition-all select-none ${
+                          isDragTarget
+                            ? "ring-2 ring-[#dc2350]/60 bg-[#dc2350]/5"
+                            : "hover:bg-muted/40"
+                        }`}
+                        data-testid={`row-platform-notif-${up.id}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <GripVertical className="w-4 h-4 shrink-0 text-muted-foreground/50 cursor-grab active:cursor-grabbing" />
+                          <PlatformIcon platform={up.platform} size="sm" />
+                          <span className="text-sm text-muted-foreground truncate">{up.displayName ?? up.platform.name}</span>
+                        </div>
+                        <div className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${up.isActive ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}`}>
+                          {up.isActive ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <p className="text-muted-foreground text-sm">No platforms added yet.</p>
             )}
